@@ -146,10 +146,10 @@ pub contract TroveNFT {
     init(registry: Address) uses (mut manager, mut collateral, mut bold, mut metadata, call: mut Call, storage: mut RawStorage) {
         let token = registry.static(RegistryMsg::GetcollToken {})
         let name = token.static(NftDependencyMsg::Name {})
-        storage_string::initialize(0, encode_packed(("Liquity V2 - ", name.as_bytes())).as_bytes())
+        storage_string::initialize(0, encode_packed(("Liquity V2 - ", name.into_bytes())).as_bytes())
         let symbol_token = registry.static(RegistryMsg::GetcollToken {})
         let symbol = symbol_token.static(NftDependencyMsg::Symbol {})
-        storage_string::initialize(1, encode_packed(("LV2_", symbol.as_bytes())).as_bytes())
+        storage_string::initialize(1, encode_packed(("LV2_", symbol.into_bytes())).as_bytes())
         manager = registry.static(RegistryMsg::GettroveManager {})
         collateral = registry.static(RegistryMsg::GetcollToken {})
         metadata = registry.static(RegistryMsg::GetmetadataNFT {})

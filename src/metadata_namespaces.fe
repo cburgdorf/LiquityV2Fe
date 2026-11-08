@@ -3,8 +3,8 @@
 // strings have a 31-byte capacity. Preserve the reference's trailing spaces.
 use std::abi::DynString
 use super::metadata_concat::{cat, text, fragment}
-pub fn svg_namespace() -> DynString { cat(fragment("xmlns=\"http://www.w3.org/2000/"), fragment("svg\"")) }
-pub fn html_namespace() -> DynString { cat(fragment("xmlns=\"http://www.w3.org/1999/"), fragment("xhtml\"")) }
+pub fn svg_namespace() -> DynString { cat(fragment("xmlns=\"http://www.w3.org/2000/").span(), fragment("svg\"").span()) }
+pub fn html_namespace() -> DynString { cat(fragment("xmlns=\"http://www.w3.org/1999/").span(), fragment("xhtml\"").span()) }
 pub fn xmlns_namespace() -> DynString { text(fragment("http://www.w3.org/2000/xmlns/ ")) }
 pub fn xlink_namespace() -> DynString { text(fragment("http://www.w3.org/1999/xlink ")) }
 pub fn null() -> DynString { DynString::empty() }

@@ -3,27 +3,27 @@ use std::abi::DynString
 use super::metadata_string::{cat, fragment, base64}
 pub const DOUBLE_QUOTES: String<2> = "\\\""
 pub fn property(_ key: DynString, _ value: DynString, _ last: bool) -> DynString {
-    let a = cat(fragment("\""), key.as_bytes())
-    let b = cat(a.as_bytes(), fragment("\": \""))
-    let c = cat(b.as_bytes(), value.as_bytes())
-    cat(c.as_bytes(), fragment(if last { "\"" } else { "\", " }))
+    let a = cat(fragment("\"").span(), key.span())
+    let b = cat(a.span(), fragment("\": \"").span())
+    let c = cat(b.span(), value.span())
+    cat(c.span(), fragment(if last { "\"" } else { "\", " }).span())
 }
 pub fn object(_ key: DynString, _ value: DynString) -> DynString {
-    let a = cat(fragment("\""), key.as_bytes())
-    let b = cat(a.as_bytes(), fragment("\": {"))
-    let c = cat(b.as_bytes(), value.as_bytes())
-    cat(c.as_bytes(), fragment("}"))
+    let a = cat(fragment("\"").span(), key.span())
+    let b = cat(a.span(), fragment("\": {").span())
+    let c = cat(b.span(), value.span())
+    cat(c.span(), fragment("}").span())
 }
 pub fn xml_image(_ svg: DynString) -> DynString {
-    let image = cat(fragment("data:image/svg+xml;base64,"), base64(svg).as_bytes())
+    let image = cat(fragment("data:image/svg+xml;base64,").span(), base64(svg).span())
     property(super::metadata_string::text(fragment("image")), image, true)
 }
 pub fn formatted_metadata(_ name: DynString, _ description: DynString, _ svg: DynString, _ attributes: DynString) -> DynString {
-    let a = cat(fragment("{"), property(super::metadata_string::text(fragment("name")), name, false).as_bytes())
-    let b = cat(a.as_bytes(), property(super::metadata_string::text(fragment("description")), description, false).as_bytes())
-    let c = cat(b.as_bytes(), xml_image(svg).as_bytes())
-    let d = cat(c.as_bytes(), fragment(",\"attributes\":"))
-    let e = cat(d.as_bytes(), attributes.as_bytes())
-    let f = cat(e.as_bytes(), fragment("}"))
-    cat(fragment("data:application/json;base64,"), base64(f).as_bytes())
+    let a = cat(fragment("{").span(), property(super::metadata_string::text(fragment("name")), name, false).span())
+    let b = cat(a.span(), property(super::metadata_string::text(fragment("description")), description, false).span())
+    let c = cat(b.span(), xml_image(svg).span())
+    let d = cat(c.span(), fragment(",\"attributes\":").span())
+    let e = cat(d.span(), attributes.span())
+    let f = cat(e.span(), fragment("}").span())
+    cat(fragment("data:application/json;base64,").span(), base64(f).span())
 }

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+use core::ptr::MemSpan
 use std::abi::{Bytes, DynString}
 use super::bytes_builder::BytesBuilder
 
@@ -11,12 +12,12 @@ pub fn fragment(_ value: String<31>) -> Bytes {
 }
 
 #[inline(never)]
-pub fn text(_ value: Bytes) -> DynString { DynString::from_payload(source: value.payload_span()) }
+pub fn text(_ value: Bytes) -> DynString { DynString::from_payload(source: value.span()) }
 
 #[inline(never)]
-pub fn cat(_ left: Bytes, _ right: Bytes) -> DynString {
-    var out = BytesBuilder::with_capacity(left.len() + right.len())
-    out.append(left.payload_span())
-    out.append(right.payload_span())
+pub fn cat(_ left: MemSpan, _ right: MemSpan) -> DynString {
+    var out = BytesBuilder::with_capacity((left.len() + right.len()) as u256)
+    out.append(left)
+    out.append(right)
     out.into_string()
 }

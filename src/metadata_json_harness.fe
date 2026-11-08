@@ -21,7 +21,7 @@ pub contract MetadataJsonHarness {
         PropertyMore { key, value } -> DynString { json::property(key, value, false) }
         Object { key, value } -> DynString { json::object(key, value) }
         Image { value } -> DynString { json::xml_image(value) }
-        Encode { value } -> DynString { super::metadata_string::base64(DynString::from_payload(source: value.payload_span())) }
+        Encode { value } -> DynString { super::metadata_string::base64(DynString::from_payload(source: value.span())) }
         Format { name, description, svg, attributes } -> DynString { json::formatted_metadata(name, description, svg, attributes) }
     }
 }

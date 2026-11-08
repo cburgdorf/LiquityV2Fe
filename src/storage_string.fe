@@ -8,7 +8,7 @@ use super::bytes_builder::BytesBuilder
 
 /// Initialize a fresh slot. This is not a general replacement/clearing operation.
 pub fn initialize(_ slot: u256, _ value: Bytes) uses (storage: mut RawStorage) {
-    let len = value.len()
+    let len = value.len() as u256
     if len < 32 {
         let word = if len == 0 { 0 } else { value.word_at(0) }
         unsafe { storage.sstore(slot: slot, value: word | (len * 2)) }
@@ -17,7 +17,7 @@ pub fn initialize(_ slot: u256, _ value: Bytes) uses (storage: mut RawStorage) {
         let base = keccak_packed(slot)
         var offset: u256 = 0
         while offset < len {
-            unsafe { storage.sstore(slot: base + offset / 32, value: value.word_at(offset)) }
+            unsafe { storage.sstore(slot: base + offset / 32, value: value.word_at(offset.downcast_unchecked())) }
             offset += 32
         }
     }
@@ -38,5 +38,5 @@ pub fn load(_ slot: u256) -> DynString uses (storage: RawStorage) {
             offset += 32
         }
     }
-    DynString::from_payload(source: out.span().slice(offset: 0, len))
+    DynString::from_payload(source: out.span().slice(offset: 0, len: len.downcast_unchecked()))
 }

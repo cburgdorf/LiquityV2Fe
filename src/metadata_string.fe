@@ -5,7 +5,7 @@
 use core::num::IntDowncast
 use std::abi::DynString
 use std::evm::{Address}
-use std::evm::packed::keccak_packed
+use std::evm::crypto::keccak256
 use super::bytes_builder::BytesBuilder
 pub use super::metadata_concat::{cat, text, fragment}
 
@@ -19,7 +19,7 @@ pub fn decimal(var _ value: own u256) -> DynString {
         value /= 10
         if value == 0 { break }
     }
-    DynString::from_payload(source: out.span().slice(offset: i, len: 78 - i))
+    DynString::from_payload(source: out.span().slice(offset: i.downcast_unchecked(), len: (78 - i).downcast_unchecked()))
 }
 
 #[inline(never)]
@@ -53,9 +53,9 @@ pub fn hex_number(_ value: u256) -> DynString {
 #[inline(never)]
 pub fn checksum(_ address: Address) -> DynString {
     let lower = hex_fixed(address.word(), 20)
-    let hash = keccak_packed(slice(lower, 2, 42).as_bytes())
+    let hash = keccak256(slice(lower, 2, 42).span())
     var out = BytesBuilder::with_capacity(42)
-    out.append(lower.payload_span())
+    out.append(lower.span())
     var i: u256 = 0
     while i < 40 {
         let c = out.byte_at(i + 2)
@@ -67,9 +67,10 @@ pub fn checksum(_ address: Address) -> DynString {
 
 #[inline(never)]
 pub fn slice(_ value: DynString, _ start: u256, _ end: u256) -> DynString {
-    let end = if end < value.len() { end } else { value.len() }
+    let len = value.len() as u256
+    let end = if end < len { end } else { len }
     if start >= end { return DynString::empty() }
-    DynString::from_payload(source: value.payload_span().slice(offset: start, len: end - start))
+    DynString::from_payload(source: value.span().slice(offset: start.downcast_unchecked(), len: (end - start).downcast_unchecked()))
 }
 
 #[inline(never)]
@@ -80,9 +81,9 @@ fn base64_char(_ i: u256) -> u8 {
 #[inline(never)]
 pub fn base64(_ data: DynString) -> DynString {
     let len = 4 * ((data.len() + 2) / 3)
-    var out = BytesBuilder::zeroed(len)
-    let input = data.payload_span()
-    var i: u256 = 0
+    var out = BytesBuilder::zeroed(len as u256)
+    let input = data.span()
+    var i: usize = 0
     var j: u256 = 0
     while i < data.len() {
         let a = input.byte_at(i) as u256
@@ -126,26 +127,26 @@ pub fn locale(_ value: u256, _ divisor: u8, _ precision: u8) -> DynString {
     let digits = decimal(whole)
     let len = digits.len()
     let out_len = len + (len - 1) / 3
-    var grouped = BytesBuilder::with_capacity(out_len)
-    var i: u256 = 0
+    var grouped = BytesBuilder::with_capacity(out_len as u256)
+    var i: usize = 0
     while i < len {
         if i > 0 && (len - i) % 3 == 0 {
             grouped.push_byte(44)
         }
-        grouped.push_byte(digits.payload_span().byte_at(i))
+        grouped.push_byte(digits.span().byte_at(i))
         i += 1
     }
     var output = grouped.into_string()
     if fraction == 0 {
-        if whole > 0 && prec > 0 { output = cat(output.as_bytes(), fragment(".")) }
+        if whole > 0 && prec > 0 { output = cat(output.span(), fragment(".").span()) }
         var k: u256 = 0
-        while k < prec { output = cat(output.as_bytes(), fragment("0"))
+        while k < prec { output = cat(output.span(), fragment("0").span())
             k += 1
         }
         return output
     }
     let number = decimal(fraction)
     var fraction_str = slice(number, 0, prec)
-    while fraction_str.len() < prec { fraction_str = cat(fragment("0"), fraction_str.as_bytes()) }
-    if prec > 0 { cat(cat(output.as_bytes(), fragment(".")).as_bytes(), fraction_str.as_bytes()) } else { cat(output.as_bytes(), fraction_str.as_bytes()) }
+    while (fraction_str.len() as u256) < prec { fraction_str = cat(fragment("0").span(), fraction_str.span()) }
+    if prec > 0 { cat(cat(output.span(), fragment(".").span()).span(), fraction_str.span()) } else { cat(output.span(), fraction_str.span()) }
 }

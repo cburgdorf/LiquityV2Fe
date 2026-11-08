@@ -23,13 +23,13 @@ fn padded(_ len: u256) -> u256 {
 impl BytesBuilder {
     /// An empty builder that can hold `capacity` payload bytes.
     pub fn with_capacity(_ capacity: u256) -> Self {
-        BytesBuilder { head: ptr::alloc_bytes(32 + padded(capacity)), len: 0, capacity }
+        BytesBuilder { head: ptr::alloc_bytes((32 + padded(capacity)).downcast_unchecked()), len: 0, capacity }
     }
 
     /// A builder pre-sized to `len` zero bytes, for fill-in-place formatting.
     pub fn zeroed(_ len: u256) -> Self {
         var b = Self::with_capacity(len)
-        unsafe { ptr::zero_bytes(b.payload(), len) }
+        unsafe { ptr::zero_bytes(b.payload(), len.downcast_unchecked()) }
         b.len = len
         b
     }
@@ -38,17 +38,21 @@ impl BytesBuilder {
         ptr::offset_bytes(self.head, 32)
     }
 
+    fn ptr_at(self, _ offset: u256) -> *u8 {
+        ptr::offset_bytes(self.payload(), offset.downcast_unchecked())
+    }
+
     pub fn len(self) -> u256 {
         self.len
     }
 
     pub fn span(self) -> ref MemSpan {
-        unsafe { MemSpan::from_raw_parts(ptr: self.payload(), len: self.len) }
+        unsafe { MemSpan::from_raw_parts(ptr: self.payload(), len: self.len.downcast_unchecked()) }
     }
 
     pub fn byte_at(self, _ index: u256) -> u8 {
         assert!(index < self.len)
-        unsafe { *ptr::offset_bytes(self.payload(), index) }
+        unsafe { *self.ptr_at(index) }
     }
 
     /// Write a full word at payload offset `at`, extending the extent (any
@@ -57,9 +61,9 @@ impl BytesBuilder {
         assert!(at <= self.capacity && 32 <= self.capacity - at)
         unsafe {
             if at > self.len {
-                ptr::zero_bytes(ptr::offset_bytes(self.payload(), self.len), at - self.len)
+                ptr::zero_bytes(self.ptr_at(self.len), (at - self.len).downcast_unchecked())
             }
-            core::abi::store_word(ptr: ptr::offset_bytes(self.payload(), at), value)
+            core::abi::store_word(ptr: self.ptr_at(at), value)
         }
         if at + 32 > self.len {
             self.len = at + 32
@@ -72,9 +76,9 @@ impl BytesBuilder {
         assert!(at < self.capacity)
         unsafe {
             if at > self.len {
-                ptr::zero_bytes(ptr::offset_bytes(self.payload(), self.len), at - self.len)
+                ptr::zero_bytes(self.ptr_at(self.len), (at - self.len).downcast_unchecked())
             }
-            *ptr::offset_bytes(self.payload(), at) = value
+            *self.ptr_at(at) = value
         }
         if at >= self.len {
             self.len = at + 1
@@ -88,10 +92,10 @@ impl BytesBuilder {
 
     /// Append a byte span at the end.
     pub fn append(mut self, _ data: MemSpan) {
-        assert!(self.len <= self.capacity && data.len() <= self.capacity - self.len)
+        assert!(self.len <= self.capacity && (data.len() as u256) <= self.capacity - self.len)
         if !data.is_empty() {
-            unsafe { ptr::copy(dest: ptr::offset_bytes(self.payload(), self.len), source: data) }
-            self.len += data.len()
+            unsafe { ptr::copy(dest: self.ptr_at(self.len), source: data) }
+            self.len += data.len() as u256
         }
     }
 
@@ -107,25 +111,25 @@ impl BytesBuilder {
             core::abi::store_word(ptr: self.head, value: self.len)
             let pad = padded(self.len) - self.len
             if pad > 0 {
-                ptr::zero_bytes(ptr::offset_bytes(self.payload(), self.len), pad)
+                ptr::zero_bytes(self.ptr_at(self.len), pad.downcast_unchecked())
             }
         }
     }
 
     pub fn into_string(var own self) -> DynString {
         self.finish_tail()
-        unsafe { DynString::from_abi_tail(data: self.head, len: self.len, size: 32 + padded(self.len)) }
+        unsafe { DynString::from_abi_tail(data: self.head, len: self.len.downcast_unchecked(), size: 32 + padded(self.len)) }
     }
 
     pub fn into_bytes(var own self) -> Bytes {
         self.finish_tail()
-        unsafe { Bytes::from_abi_tail(data: self.head, len: self.len, size: 32 + padded(self.len)) }
+        unsafe { Bytes::from_abi_tail(data: self.head, len: self.len.downcast_unchecked(), size: 32 + padded(self.len)) }
     }
 
     /// Read a full word at payload offset `at`. Panics out of bounds.
     pub fn read_word(self, at: u256) -> u256 {
         assert!(at <= self.len && 32 <= self.len - at)
-        unsafe { core::abi::load_word(ptr::offset_bytes(self.payload(), at)) }
+        unsafe { core::abi::load_word(self.ptr_at(at)) }
     }
 
     /// Freeze as a dynamic array of `count` elements. The caller must have
@@ -138,10 +142,10 @@ impl BytesBuilder {
             core::abi::store_word(ptr: self.head, value: count)
             let pad = padded(self.len) - self.len
             if pad > 0 {
-                ptr::zero_bytes(ptr::offset_bytes(self.payload(), self.len), pad)
+                ptr::zero_bytes(self.ptr_at(self.len), pad.downcast_unchecked())
             }
         }
-        unsafe { DynArray::from_abi_tail(data: self.head, len: count, size: 32 + padded(self.len)) }
+        unsafe { DynArray::from_abi_tail(data: self.head, len: count.downcast_unchecked(), size: 32 + padded(self.len)) }
     }
 
     /// Copy the payload out as a plain buffer (the freeze paths above do not copy).
@@ -167,7 +171,7 @@ fn appends_and_truncates() {
     b.push_byte(104)
     b.push_byte(105)
     let bang: DynString = "!"
-    b.append(bang.payload_span())
+    b.append(bang.span())
     assert!(b.into_string() == "hi!")
     var c = BytesBuilder::zeroed(32)
     c.write_word(at: 0, value: 0x6869000000000000000000000000000000000000000000000000000000000000)
