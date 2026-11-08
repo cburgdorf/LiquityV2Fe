@@ -4,7 +4,8 @@ use core::num::IntDowncast
 use std::abi::{sol, Bytes4, DynString}
 use std::evm::{Address, Call, Create, revert, Wei}
 use std::evm::crypto::keccak256
-use super::metadata_string::{cat, text, fragment, decimal, hex_fixed, hex_number, checksum, slice, base64, locale}
+use core::text::{base64, decimal}
+use super::metadata_string::{cat, text, fragment, hex_fixed, hex_number, checksum, slice, locale}
 use super::metadata_geometry::{MetadataGeometry, MetadataGeometryMsg}
 use super::metadata_literals as lit
 use super::fixed_asset_reader::FixedAssetReaderMsg
@@ -86,9 +87,9 @@ pub contract MetadataNFT {
             let name = data.2.static(NftDependencyMsg::Name {})
             let symbol = data.2.static(NftDependencyMsg::Symbol {})
             let description = cat(cat(lit::description_open().span(), symbol.span()).span(), lit::description_close().span())
-            let image = base64(render(reader, geometry, data))
+            let image = base64(render(reader, geometry, data).span())
             let json = cat(cat(cat(cat(cat(cat(cat(cat(cat(fragment("{\"name\": \"Liquity V2 - ").span(), name.span()).span(), fragment("\", \"description\": \"").span()).span(), description.span()).span(), fragment("\", \"image\": \"").span()).span(), fragment("data:image/svg+xml;base64,").span()).span(), image.span()).span(), fragment("\",\"attributes\":").span()).span(), attr.span()).span(), fragment("}").span())
-            cat(fragment("data:application/json;base64,").span(), base64(json).span())
+            cat(fragment("data:application/json;base64,").span(), base64(json.span()).span())
         }
     }
 }

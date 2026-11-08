@@ -3,24 +3,12 @@
 // the exact truncation and zero formatting of NFTMetadata/utils/Utils.sol.
 // All byte assembly goes through the checked `BytesBuilder`; no raw pointers.
 use core::num::IntDowncast
+use core::text::decimal
 use std::abi::DynString
 use std::evm::{Address}
 use std::evm::crypto::keccak256
 use super::bytes_builder::BytesBuilder
 pub use super::metadata_concat::{cat, text, fragment}
-
-#[inline(never)]
-pub fn decimal(var _ value: own u256) -> DynString {
-    var out = BytesBuilder::zeroed(78)
-    var i: u256 = 78
-    while true {
-        i -= 1
-        out.write_byte(at: i, value: (48 + value % 10).downcast_truncate())
-        value /= 10
-        if value == 0 { break }
-    }
-    DynString::from_payload(source: out.span().slice(offset: i.downcast_unchecked(), len: (78 - i).downcast_unchecked()))
-}
 
 #[inline(never)]
 fn digit(_ value: u256) -> u8 { (if value < 10 { 48 + value } else { 87 + value }).downcast_truncate() }
@@ -71,33 +59,6 @@ pub fn slice(_ value: DynString, _ start: u256, _ end: u256) -> DynString {
     let end = if end < len { end } else { len }
     if start >= end { return DynString::empty() }
     DynString::from_payload(source: value.span().slice(offset: start.downcast_unchecked(), len: (end - start).downcast_unchecked()))
-}
-
-#[inline(never)]
-fn base64_char(_ i: u256) -> u8 {
-    (if i < 26 { 65 + i } else if i < 52 { 97 + i - 26 } else if i < 62 { 48 + i - 52 } else if i == 62 { 43 } else { 47 }).downcast_truncate()
-}
-
-#[inline(never)]
-pub fn base64(_ data: DynString) -> DynString {
-    let len = 4 * ((data.len() + 2) / 3)
-    var out = BytesBuilder::zeroed(len as u256)
-    let input = data.span()
-    var i: usize = 0
-    var j: u256 = 0
-    while i < data.len() {
-        let a = input.byte_at(i) as u256
-        let b = if i + 1 < data.len() { input.byte_at(i + 1) as u256 } else { 0 }
-        let c = if i + 2 < data.len() { input.byte_at(i + 2) as u256 } else { 0 }
-        let value = (a << 16) | (b << 8) | c
-        out.write_byte(at: j, value: base64_char((value >> 18) & 63))
-        out.write_byte(at: j + 1, value: base64_char((value >> 12) & 63))
-        out.write_byte(at: j + 2, value: if i + 1 < data.len() { base64_char((value >> 6) & 63) } else { 61 })
-        out.write_byte(at: j + 3, value: if i + 2 < data.len() { base64_char(value & 63) } else { 61 })
-        i += 3
-        j += 4
-    }
-    out.into_string()
 }
 
 #[inline(never)]

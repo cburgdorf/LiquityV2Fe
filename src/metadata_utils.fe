@@ -4,7 +4,8 @@ use core::abi::{Decode, ByteInput}
 use std::abi::{Sol, DynString, DynArray}
 use std::evm::{revert_error}
 use std::evm::crypto::keccak256
-use super::metadata_string::{cat, fragment, text, decimal, slice}
+use core::text::decimal
+use super::metadata_string::{cat, fragment, text, slice}
 #[error]
 pub struct Error { pub reason: DynString }
 fn require(_ condition: bool, _ reason: own DynString) { if !condition { revert_error(Error { reason }) } }

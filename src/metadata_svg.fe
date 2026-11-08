@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 use std::abi::DynString
-use super::metadata_string::{cat, fragment, text, decimal}
+use core::text::decimal
+use super::metadata_string::{cat, fragment, text}
 #[inline(never)]
 pub fn el_2(_ tag: DynString, _ props: DynString) -> DynString { cat((cat((cat((cat((text(fragment("<"))).span(), (tag).span())).span(), (text(fragment(" "))).span())).span(), (props).span())).span(), (text(fragment("/>"))).span()) }
 #[inline(never)]

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 use std::abi::DynString
-use super::metadata_string::{cat, fragment, base64}
+use core::text::base64
+use super::metadata_string::{cat, fragment}
 pub const DOUBLE_QUOTES: String<2> = "\\\""
 pub fn property(_ key: DynString, _ value: DynString, _ last: bool) -> DynString {
     let a = cat(fragment("\"").span(), key.span())
@@ -15,7 +16,7 @@ pub fn object(_ key: DynString, _ value: DynString) -> DynString {
     cat(c.span(), fragment("}").span())
 }
 pub fn xml_image(_ svg: DynString) -> DynString {
-    let image = cat(fragment("data:image/svg+xml;base64,").span(), base64(svg).span())
+    let image = cat(fragment("data:image/svg+xml;base64,").span(), base64(svg.span()).span())
     property(super::metadata_string::text(fragment("image")), image, true)
 }
 pub fn formatted_metadata(_ name: DynString, _ description: DynString, _ svg: DynString, _ attributes: DynString) -> DynString {
@@ -25,5 +26,5 @@ pub fn formatted_metadata(_ name: DynString, _ description: DynString, _ svg: Dy
     let d = cat(c.span(), fragment(",\"attributes\":").span())
     let e = cat(d.span(), attributes.span())
     let f = cat(e.span(), fragment("}").span())
-    cat(fragment("data:application/json;base64,").span(), base64(f).span())
+    cat(fragment("data:application/json;base64,").span(), base64(f.span()).span())
 }

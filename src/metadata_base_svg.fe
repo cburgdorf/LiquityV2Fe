@@ -2,7 +2,8 @@
 use std::abi::{DynString, Bytes4}
 use std::evm::{Address, Call}
 use std::evm::crypto::keccak256
-use super::metadata_string::{cat, fragment, text, decimal, checksum, slice, locale}
+use core::text::decimal
+use super::metadata_string::{cat, fragment, text, checksum, slice, locale}
 use super::metadata_svg as svg
 use super::metadata_literals as lit
 use super::fixed_asset_reader::FixedAssetReaderMsg
