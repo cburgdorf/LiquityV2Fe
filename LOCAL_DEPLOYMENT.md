@@ -42,8 +42,8 @@ select a build directory, and `--output-dir` for a new, explicit result director
   arguments are assembled automatically; see the individual deployment documents.
 
 All Liquity contracts use Fe bytecode deployed by transactions with the normal
-EVM runtime/initcode size limits. The local chain runs Cancun, matching the
-Solidity differential test environment.
+EVM runtime/initcode size limits. The local chain runs Osaka, the EVM Fe
+compiles for, matching the Solidity differential test environment.
 
 The Solidity contracts in `tools/local_demo/src/DevDependencies.sol` are explicitly
 external fixtures: collateral/LQTY/LUSD/USDC/reward tokens, oracle data/rates, V1
