@@ -138,8 +138,8 @@
     "function_count": 3
   },
   "MetadataNFT": {
-    "runtime_bytes": 9383,
-    "initcode_bytes_before_arguments": 20904,
+    "runtime_bytes": 9350,
+    "initcode_bytes_before_arguments": 20871,
     "compiler_abi_sha256": "1cc8fbc2ee632915819e7ce70c2c1632aa0427c71fb8494da7b8157379869744",
     "reference_artifact_sha256": "ed9833337bde45aaa1a7c4543bce8252b518a48ca394e43d8ac62b69bee99b4c",
     "protocol_abi_sha256": "9f7267bfd9c73a4e2a131a1c003c6d1310a73c24b064f29815a5e1aea6904747",
@@ -193,8 +193,8 @@
     "function_count": 12
   },
   "StabilityPool": {
-    "runtime_bytes": 7174,
-    "initcode_bytes_before_arguments": 8508,
+    "runtime_bytes": 7173,
+    "initcode_bytes_before_arguments": 8507,
     "compiler_abi_sha256": "d5ee56d4e2369ff769aeaae6af9a4bb8abba098965ef38c28228d493d92ea0e1",
     "reference_artifact_sha256": "d1bac69f96cfe4fb2f1b6e5a2443f7bd0656355054a8a5413d6488cc5ccc6603",
     "protocol_abi_sha256": "414b5b0242e36cf1703ab97676cbd25f12f3fb556a657071ee249707802c43d2",

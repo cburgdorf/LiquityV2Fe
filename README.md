@@ -12,13 +12,12 @@ and zappers. Source mappings and their verification scope are in `port_status.js
 `governance_status.json`. Governance and connected initiative lifecycles are included.
 
 `reference_manifest.json` pins the Solidity reference and Fe compiler at
-[`argotorg/fe` master `22b156fff`](https://github.com/argotorg/fe/tree/22b156fffc794bb25eaf4dac124ff71ae5aa01e1)
+[`argotorg/fe` master `80eaf2deb`](https://github.com/argotorg/fe/tree/80eaf2deb573bf2fde2d3d5701e9504855157bdd)
 with Sonatina `37c7c0aa`. Master includes the
-[custom struct ABI wire types](https://github.com/argotorg/fe/pull/1827) fix.
-[Snapshot call checking](https://github.com/argotorg/fe/pull/1828) is still open:
-without it, `fe check` rejects StabilityPool's four calls through its
-`active_pool` storage address (error 16-0001), so the ingot does not check on
-this pin until #1828 lands. Fe compiles for Osaka (CLZ), so Foundry runs the
+[custom struct ABI wire types](https://github.com/argotorg/fe/pull/1827) and
+[Snapshot call checking](https://github.com/argotorg/fe/pull/1828) fixes.
+The metadata renderer uses `core::text` for base64 and decimal formatting.
+Fe compiles for Osaka (CLZ), so Foundry runs the
 differential suite under Osaka while compiling the Solidity reference for Cancun.
 The compiler lives in `toolchain/fe`; bootstrap and the test suite reject
 compiler source or binary drift. Compiler investigations are recorded in
@@ -106,12 +105,11 @@ byte-builder tests, eleven Python checks, and the complete ABI/size audit. It al
 checks the packed-padding preservation boundary. Compiler fixes have their own
 Fe runtime and diagnostic fixtures; no Rust tests were added.
 
-On Fe master `22b156fff`, all 353 EVM tests except the known
-`HelperParityTest.testHugeAllocationPanic` divergence and all 66 Fe tests pass,
-with StabilityPool built from a local copy of `active_pool` before its four calls
-in place of #1828. Aggregate audited runtime size is 277,054 bytes, down from
-294,865 at the previous PR checkpoint (-17,811, -6.04%); compiler and protocol
-ABIs are unchanged. All runtime and initcode limits pass. Shared read effects
+On Fe master `80eaf2deb`, all 353 EVM tests except the known
+`HelperParityTest.testHugeAllocationPanic` divergence and all 66 Fe tests pass.
+Aggregate audited runtime size is 277,020 bytes, down from 294,865 at the
+previous PR checkpoint (-17,845, -6.05%); compiler and protocol ABIs are
+unchanged. All runtime and initcode limits pass. Shared read effects
 reduce ABI view mutability refinements from 42 to three.
 
 The earlier full MVS protocol checkpoint is `tests/results/mvs-refresh.log` and

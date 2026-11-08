@@ -1,16 +1,15 @@
 # Compiler fixes
 
-Current compiler: `toolchain/fe` at `22b156fffc794bb25eaf4dac124ff71ae5aa01e1`
-on [`argotorg/fe` master](https://github.com/argotorg/fe/tree/22b156fffc794bb25eaf4dac124ff71ae5aa01e1),
+Current compiler: `toolchain/fe` at `80eaf2deb573bf2fde2d3d5701e9504855157bdd`
+on [`argotorg/fe` master](https://github.com/argotorg/fe/tree/80eaf2deb573bf2fde2d3d5701e9504855157bdd),
 with Sonatina `37c7c0aa8097310872ad3a484b23463c0e38cfc0`. Master contains
 [Fe #1827](https://github.com/argotorg/fe/pull/1827) (custom struct wire-type
 metadata, merged as `949e776b0`), which supports lazy calldata address words
-without violating the canonical Address invariant, and the oversized integer
-literal fix below (#1595). [Fe #1828](https://github.com/argotorg/fe/pull/1828)
-(Snapshot views through capabilities) is still open. Without it, master reports
-false access conflicts (error 16-0001) for StabilityPool's four calls through
-its mutable `active_pool` storage address in `provide`, `withdraw`, `claim_coll`
-and `offset`. An immutable address, or a local copy of the address, checks.
+without violating the canonical Address invariant;
+[Fe #1828](https://github.com/argotorg/fe/pull/1828) (Snapshot views through
+capabilities, merged as `80eaf2deb`), which removes false access conflicts for
+StabilityPool's calls through its mutable `active_pool` storage address; and
+the oversized integer literal fix below (#1595).
 `reference_manifest.json` pins its revision and source tree; no local compiler
 patches are applied. `scripts/verify_compiler.py --binary` checks both the
 checkout and the release CLI before protocol verification.
