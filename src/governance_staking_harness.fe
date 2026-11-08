@@ -1,6 +1,6 @@
 use std::evm::read_storage_word
 use std::abi::sol
-use std::evm::{Address, Ctx, Call, Create, RawStorage, Log}
+use std::evm::{Address, Ctx, Call, Create, RawStorage, Log, Wei}
 use super::user_proxy::{UserProxy, PermitParams}
 use super::user_proxy_factory as factory
 use super::governance_staking as staking
@@ -32,7 +32,7 @@ pub msg StakingMsg {
 pub contract GovernanceStakingHarness {
     implementation: Address,
     init(lqty: Address, lusd: Address, v1: Address) uses (mut implementation, create: mut Create, storage: mut RawStorage) {
-        implementation = create.create<UserProxy>(value: 0, args: (lqty, lusd, v1))
+        implementation = create.create<UserProxy>(value: Wei::zero(), args: (lqty, lusd, v1))
         unsafe { storage.sstore(slot: 0, value: 1) }
     }
     recv StakingMsg {

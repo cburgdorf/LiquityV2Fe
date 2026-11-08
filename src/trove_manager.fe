@@ -2,7 +2,7 @@
 // Full TroveManager public interface and registry configuration.
 use std::evm::read_storage_word
 use std::abi::{sol, DynArray}
-use std::evm::{Address, Ctx, Call, Log, RawStorage, RawOps, storage_at_mut}
+use std::evm::{Address, Ctx, Call, Log, RawStorage, RawOps, storage_at}
 use super::trove_memory_array::TroveMemoryArray
 use super::trove_hooks as hooks
 use super::types::{TroveChange, LatestTroveData, LatestBatchData}
@@ -18,15 +18,15 @@ use super::trove_redemption::{PriceMsg, require_code}
 #[inline(never)]
 fn forward(_ target: Address) -> ! uses (ctx: Ctx, ops: mut RawOps, call: mut Call) {
     let len = ops.calldatasize()
-    var args = core::ptr::MemBuffer::with_capacity(len)
+    var args = core::ptr::MemBuffer::with_capacity(len.downcast_unchecked())
     ops.calldatacopy(dest: mut args, dest_offset: 0, src_offset: 0, len: len)
-    unsafe { args.set_len(len) }
+    unsafe { args.set_len(len.downcast_unchecked()) }
     var output = core::ptr::MemBuffer::empty()
     let result = call.raw_delegatecall(addr: target, gas: ctx.gas(), args: args.span(), ret: mut output)
     let size = result.returndata_len()
-    var returned = core::ptr::MemBuffer::with_capacity(size)
+    var returned = core::ptr::MemBuffer::with_capacity(size.downcast_unchecked())
     ops.returndatacopy(dest: mut returned, dest_offset: 0, src_offset: 0, len: size)
-    unsafe { returned.set_len(size) }
+    unsafe { returned.set_len(size.downcast_unchecked()) }
     if result.success() { ops.return_data(data: returned.span()) }
     else { ops.revert(data: returned.span()) }
 }
@@ -144,7 +144,7 @@ pub contract TroveManager {
         let sorted = registry.static(RegistryMsg::GetsortedTroves {})
         let weth_value = registry.static(RegistryMsg::GetWETH {})
         let collateral_registry = registry.static(RegistryMsg::GetcollateralRegistry {})
-        let tm = unsafe { storage_at_mut<data::TroveManagerLayout>(0) }
+        let tm = unsafe { mut storage_at<data::TroveManagerLayout>(0) }
         tm.active_pool = active
         tm.default_pool = default_pool
         tm.price_feed = feed
@@ -206,7 +206,7 @@ pub contract TroveManager {
         }
 
         Shutdown uses (ctx: Ctx, storage: mut RawStorage, call: mut Call) { hooks::require_bo()
-            unsafe { storage.sstore(slot: data::SHUTDOWN, value: ctx.timestamp()) }
+            unsafe { storage.sstore(slot: data::SHUTDOWN, value: ctx.timestamp().as_seconds()) }
             let active = Address::from_word_truncate(read_storage_word(0))
             require_code(active)
             active.call(ActivePoolMsg::SetShutdownFlag {}) }

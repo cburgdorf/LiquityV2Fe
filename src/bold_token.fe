@@ -235,7 +235,7 @@ pub contract BoldToken uses (ctx: Ctx, log: mut Log, ops: RawOps) {
             token_transfer(pool, receiver, amount)
         }
         Permit { owner, spender, value, deadline, v, r, s } uses (mut nonces, mut allowances, ctx, mut log) {
-            text::require(ctx.timestamp() <= deadline, text::permit_expired())
+            text::require(ctx.timestamp().as_seconds() <= deadline, text::permit_expired())
             let nonce = nonces.get(owner)
             nonces.set(key: owner, value: increment_nonce(nonce))
             let struct_hash = keccak_packed((PERMIT_TYPEHASH, owner.word(), spender.word(), value, nonce, deadline))

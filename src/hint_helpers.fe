@@ -85,7 +85,7 @@ pub contract HintHelpers {
             let manager = registry.static(HelperRegistryMsg::Manager { index })
             let pool = manager.static(HelperManagerMsg::Active {})
             let t = manager.static(HelperManagerMsg::Trove { id })
-            if rate == t.annual_interest_rate || ctx.timestamp() >= t.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN { return 0 }
+            if rate == t.annual_interest_rate || ctx.timestamp().as_seconds() >= t.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN { return 0 }
             individual_rate(pool, t, rate)
         }
         ForceRate { index, id, rate } -> u256 uses (registry, call: Call) {
@@ -118,7 +118,7 @@ pub contract HintHelpers {
             let manager = registry.static(HelperRegistryMsg::Manager { index })
             let pool = manager.static(HelperManagerMsg::Active {})
             let b = manager.static(HelperManagerMsg::Batch { manager: batch })
-            if rate == b.annual_interest_rate || ctx.timestamp() >= b.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN { return 0 }
+            if rate == b.annual_interest_rate || ctx.timestamp().as_seconds() >= b.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN { return 0 }
             var change = TroveChange::zero()
             change.batch_accrued_management_fee = b.accrued_management_fee
             change.new_weighted_recorded_debt = b.entire_debt_without_redistribution * rate
@@ -154,7 +154,7 @@ pub contract HintHelpers {
             let t = manager.static(HelperManagerMsg::Trove { id })
             let batch = manager.static(HelperManagerMsg::Stored { id }).8
             let b = manager.static(HelperManagerMsg::Batch { manager: batch })
-            if rate == b.annual_interest_rate || ctx.timestamp() >= t.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN { return 0 }
+            if rate == b.annual_interest_rate || ctx.timestamp().as_seconds() >= t.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN { return 0 }
             var change = TroveChange::zero()
             change.applied_redist_bold_debt_gain = t.redist_bold_debt_gain
             change.batch_accrued_management_fee = b.accrued_management_fee

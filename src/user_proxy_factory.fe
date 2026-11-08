@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 use std::abi::sol
-use std::evm::{Address, Ctx, Create, Log, revert_error}
+use std::evm::{Address, Ctx, Create, Log, revert_error, Wei}
 use std::evm::packed::keccak_packed
 use super::user_proxy::UserProxy
 #[event]
@@ -21,7 +21,7 @@ pub msg UserProxyFactoryMsg {
     Deploy -> Address,
 }
 pub fn clone_code(_ implementation: Address) -> core::ptr::MemBuffer {
-    var out = core::ptr::MemBuffer::alloc(64)
+    var out = core::ptr::MemBuffer::new(64)
     out.write_word(offset: 0, value: (implementation.word() << 96 >> 232) | 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000)
     out.write_word(offset: 32, value: (implementation.word() << 120) | 0x5af43d82803e903d91602b57fd5bf3)
     core::ptr::MemBuffer::from_span(out.span().slice(offset: 9, len: 55))
@@ -35,7 +35,7 @@ pub fn derive(_ implementation: Address, _ user: Address) -> Address uses (ctx: 
 }
 pub fn deploy(_ implementation: Address) -> Address uses (ctx: Ctx, create: mut Create, log: mut Log) {
     let code = clone_code(implementation)
-    let proxy = create.create2_raw(value: 0, init_code: code.span(), salt: ctx.caller().word())
+    let proxy = create.create2_raw(value: Wei::zero(), init_code: code.span(), salt: ctx.caller().word())
     if proxy == Address::zero() { revert_error(ERC1167FailedCreateClone {}) }
     log.emit(DeployUserProxy { user: ctx.caller(), user_proxy: proxy })
     proxy
@@ -43,7 +43,7 @@ pub fn deploy(_ implementation: Address) -> Address uses (ctx: Ctx, create: mut 
 pub contract UserProxyFactory {
     implementation: Address,
     init(lqty: Address, lusd: Address, staking: Address) uses (mut implementation, create: mut Create) {
-        implementation = create.create<UserProxy>(value: 0, args: (lqty, lusd, staking))
+        implementation = create.create<UserProxy>(value: Wei::zero(), args: (lqty, lusd, staking))
     }
     recv UserProxyFactoryMsg {
         Implementation -> Address uses (implementation) { implementation }

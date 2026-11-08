@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 use core::abi::{AbiSize, AbiSpan, ByteInput, AbiDecoder, Decode, store_word}
-use std::abi::{sol, Sol, DynArray, DynArrayAccess, DynString}
+use std::abi::{sol, Sol, DynArray, DynString}
 use std::evm::{Address, Call, Ctx, RawOps, RawStorage, SolArray, encode_abi_payload, revert_error}
 use std::evm::packed::keccak_packed
 use std::evm::panic::Panic
@@ -178,14 +178,14 @@ pub contract RedemptionHelper {
         var i = 0
         while i < branches.values.len() { let validated = branches.values.get(i)
             i += 1 }
-        require(branches.values.len() == collateral_registry.static(RedemptionHelperCalls::Count {}), error_count())
-        count = branches.values.len()
+        require((branches.values.len() as u256) == collateral_registry.static(RedemptionHelperCalls::Count {}), error_count())
+        count = branches.values.len() as u256
         registry = collateral_registry
         bold = collateral_registry.static(RedemptionHelperCalls::Bold {})
         i = 0
         while i < branches.values.len() {
             let branch = branches.values.get(i)
-            require(collateral_registry.static(RedemptionHelperCalls::ManagerAt { index: i }) == branch.static(RedemptionHelperCalls::Manager {}), error_manager())
+            require(collateral_registry.static(RedemptionHelperCalls::ManagerAt { index: i as u256 }) == branch.static(RedemptionHelperCalls::Manager {}), error_manager())
             branch_list.push(branch)
             i += 1
         }
@@ -244,7 +244,7 @@ pub contract RedemptionHelper {
         Redeem { amount, iterations, fee, minimum }
         uses (count, registry, bold, ctx: Ctx, call: mut Call) {
             require(amount > 0, error_zero())
-            require(minimum.values.len() == count, error_minimum())
+            require((minimum.values.len() as u256) == count, error_minimum())
             var p = array(count, 64)
             var i = 0
             while i < count {
@@ -260,7 +260,7 @@ pub contract RedemptionHelper {
             while i < count {
                 let token = Address::new(p.read_word(at: 64 * i))
                 let received = token.static(RedemptionHelperCalls::Balance { account: ctx.address() }) - p.read_word(at: 64 * i + 32)
-                require(received >= minimum.values.get(i), error_slippage())
+                require(received >= minimum.values.get(i.downcast_unchecked()), error_slippage())
                 if received > 0 { safe_transfer(token, ctx.caller(), received) }
                 i += 1
             }

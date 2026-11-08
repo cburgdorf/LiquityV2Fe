@@ -22,15 +22,15 @@ use super::addresses_registry::*
 #[inline(never)]
 fn forward(_ target: Address) -> ! uses (ctx: Ctx, ops: mut RawOps, call: mut Call) {
     let len = ops.calldatasize()
-    var args = core::ptr::MemBuffer::with_capacity(len)
+    var args = core::ptr::MemBuffer::with_capacity(len.downcast_unchecked())
     ops.calldatacopy(dest: mut args, dest_offset: 0, src_offset: 0, len: len)
-    unsafe { args.set_len(len) }
+    unsafe { args.set_len(len.downcast_unchecked()) }
     var output = core::ptr::MemBuffer::empty()
     let result = call.raw_delegatecall(addr: target, gas: ctx.gas(), args: args.span(), ret: mut output)
     let size = result.returndata_len()
-    var returned = core::ptr::MemBuffer::with_capacity(size)
+    var returned = core::ptr::MemBuffer::with_capacity(size.downcast_unchecked())
     ops.returndatacopy(dest: mut returned, dest_offset: 0, src_offset: 0, len: size)
-    unsafe { returned.set_len(size) }
+    unsafe { returned.set_len(size.downcast_unchecked()) }
     if result.success() { ops.return_data(data: returned.span()) }
     else { ops.revert(data: returned.span()) }
 }

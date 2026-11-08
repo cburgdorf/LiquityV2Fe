@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 use std::evm::read_storage_word
-use std::abi::{sol, DynArray, DynArrayAccess}
+use std::abi::{sol, DynArray}
 use std::evm::{Address, Ctx, RawStorage, Call, Log, encode_msg_calldata, revert_error}
 use std::evm::packed::keccak_packed
 use super::governance_actions::ActionConfig
@@ -78,8 +78,8 @@ uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
         allocation.0 = add(allocation.0, dv)
         allocation.2 = add(allocation.2, dt)
         allocation.4 = current
-        assert_true(allocation.0 * ctx.timestamp() >= allocation.1)
-        assert_true(allocation.2 * ctx.timestamp() >= allocation.3)
+        assert_true(allocation.0 * ctx.timestamp().as_seconds() >= allocation.1)
+        assert_true(allocation.2 * ctx.timestamp().as_seconds() >= allocation.3)
         let a = allocation_slot(ctx.caller(), target)
         unsafe { storage.sstore(slot: a, value: allocation.0) }
         unsafe { storage.sstore(slot: a + 1, value: allocation.1) }

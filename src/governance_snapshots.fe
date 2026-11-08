@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 use std::evm::read_storage_word
-use std::evm::{Address, Ctx, RawStorage, Call, Log, StorageMap, storage_at_mut}
+use std::evm::{Address, Ctx, RawStorage, Call, Log, StorageMap, storage_at}
 use std::evm::packed::keccak_packed
 use super::governance_math::{lqty_to_votes, max}
 use super::leftovers_sweep::BalanceMsg
@@ -21,7 +21,7 @@ pub struct SnapshotVotesForInitiative {
 pub fn map(_ address: Address, _ root: u256) -> u256 { keccak_packed((address.word(), root)) }
 
 // Governance storage region (guard, owner, accrual and snapshot state).
-// Write paths reinterpret it with one unsafe storage_at_mut; the read helpers
+// Write paths reinterpret it with one unsafe `mut storage_at`; the read helpers
 // above stay raw so view getters keep read-only storage effects. The two
 // roots at 8/10 are declared only to keep numbering; their entries are
 // owned by the staking/allocation modules.
@@ -58,7 +58,7 @@ pub struct GovernanceLayout {
     pub allocations: StorageMap<Address, u256>,
     pub registered: StorageMap<Address, u256>,
 }
-pub fn epoch(_ cfg: SnapshotConfig) -> u256 uses (ctx: Ctx) { (ctx.timestamp() - cfg.start) / cfg.duration + 1 }
+pub fn epoch(_ cfg: SnapshotConfig) -> u256 uses (ctx: Ctx) { (ctx.timestamp().as_seconds() - cfg.start) / cfg.duration + 1 }
 pub fn epoch_start(_ cfg: SnapshotConfig) -> u256 uses (ctx: Ctx) { cfg.start + (epoch(cfg) - 1) * cfg.duration }
 pub fn threshold(_ cfg: SnapshotConfig, _ votes: u256) -> u256 uses (storage: RawStorage) {
     if votes == 0 { return 0 }
@@ -96,7 +96,7 @@ uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
     if update {
         let balance = cfg.bold.static(BalanceMsg::Balance { account: ctx.address() })
         let accrued = if balance < cfg.min_accrual { 0 } else { balance }
-        let gov = unsafe { storage_at_mut<GovernanceLayout>(0) }
+        let gov = unsafe { mut storage_at<GovernanceLayout>(0) }
         gov.votes_snapshot = VotesSnapshot { votes: snapshot.0, for_epoch: snapshot.1 }
         gov.bold_accrued = accrued
         log.emit(SnapshotVotes { votes: snapshot.0, for_epoch: snapshot.1, bold_accrued: accrued })
@@ -108,7 +108,7 @@ pub fn snapshot_initiative(_ cfg: SnapshotConfig, _ target: Address) -> ((u256, 
 uses (ctx: Ctx, storage: mut RawStorage, log: mut Log) {
     let (snapshot, state, update) = initiative(cfg, target)
     if update {
-        let gov = unsafe { storage_at_mut<GovernanceLayout>(0) }
+        let gov = unsafe { mut storage_at<GovernanceLayout>(0) }
         gov.initiative_snapshots[target] = InitiativeSnapshot { votes: snapshot.0, for_epoch: snapshot.1, accrued: snapshot.2, vetos: snapshot.3 }
         log.emit(SnapshotVotesForInitiative { initiative: target, votes: snapshot.0, vetos: snapshot.3, for_epoch: snapshot.1 })
     }

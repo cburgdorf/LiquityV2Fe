@@ -7,6 +7,6 @@ pub msg HookMsg {
 }
 pub contract GovernanceHooksHarness {
     recv HookMsg {
-        Run { target, gas, value, data } -> bool uses (ctx: Ctx, call: mut Call) { hooks::safe_call(target, gas, value, data.payload_span()) }
+        Run { target, gas, value, data } -> bool uses (ctx: Ctx, call: mut Call) { hooks::safe_call(target, gas, value, data.span()) }
     }
 }

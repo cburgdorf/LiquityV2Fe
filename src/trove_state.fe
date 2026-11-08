@@ -2,7 +2,7 @@
 // TroveManager packed writes, indexed arrays and exact batch-share accounting.
 use std::evm::read_storage_word
 use core::num::IntDowncast
-use std::evm::{Address, Ctx, RawStorage, revert_error, storage_at_mut}
+use std::evm::{Address, Ctx, RawStorage, revert_error, storage_at}
 use super::trove_data::TroveManagerLayout
 use std::evm::panic::{Panic, PANIC_INDEX_OUT_OF_BOUNDS}
 use std::evm::packed::keccak_packed
@@ -12,35 +12,35 @@ use super::constants::MAX_BATCH_SHARES_RATIO
 #[error]
 pub struct BatchSharesRatioTooHigh {}
 pub fn set_status(_ id: u256, _ status: u8) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].status = status
 }
 pub fn set_trove_index(_ id: u256, _ index: u64) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].array_index = index
 }
 pub fn set_trove_debt_time(_ id: u256, _ time: u256) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].last_debt_update = time.downcast_truncate()
 }
 pub fn set_trove_rate_time(_ id: u256, _ time: u256) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].last_rate_adjustment = time.downcast_truncate()
 }
 pub fn set_batch_index(_ manager: Address, _ index: u64) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.batches[manager].array_index = index
 }
 pub fn set_batch_debt_time(_ manager: Address, _ time: u256) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.batches[manager].last_debt_update = time.downcast_truncate()
 }
 pub fn set_batch_rate_time(_ manager: Address, _ time: u256) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.batches[manager].last_rate_adjustment = time.downcast_truncate()
 }
 pub fn set_manager(_ id: u256, _ manager: Address) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].batch_word = (tm.troves[id].batch_word & ~data::MASK160) | manager.word()
 }
 #[arithmetic(unchecked)]
@@ -50,16 +50,16 @@ pub fn array_get(_ root: u256, _ index: u256) -> u256 uses ( storage: RawStorage
     read_storage_word(array_slot(root, index))
 }
 pub fn push_trove_id(_ id: u256) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.trove_ids.push(id)
 }
 pub fn push_batch_id(_ manager: Address) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.batch_ids.push(manager)
 }
 pub fn remove_trove_id(_ id: u256, _ len: u256) uses (storage: mut RawStorage) {
     let index = data::load_trove(id).array_index
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     let moved = tm.trove_ids.get(len - 1)
     tm.trove_ids.set(index: index as u256, value: moved)
     tm.trove_ids.pop()
@@ -73,7 +73,7 @@ uses (ctx: Ctx, storage: mut RawStorage) {
     else { decrease = change.debt_decrease - increase
         increase = 0
     }
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     let shares = tm.batches[manager].total_shares
     if increase == 0 && decrease == 0 { tm.batches[manager].debt = batch_debt }
     else if increase > 0 {
@@ -97,7 +97,7 @@ uses (ctx: Ctx, storage: mut RawStorage) {
             tm.batches[manager].total_shares = shares - delta
         }
     }
-    tm.batches[manager].last_debt_update = ctx.timestamp().downcast_truncate()
+    tm.batches[manager].last_debt_update = ctx.timestamp().as_seconds().downcast_truncate()
     var coll_increase = change.coll_increase + change.applied_redist_coll_gain
     var coll_decrease: u256 = 0
     if coll_increase > change.coll_decrease { coll_increase -= change.coll_decrease }
@@ -113,11 +113,11 @@ uses (ctx: Ctx, storage: mut RawStorage) {
     let t = data::load_trove(id)
     let decrease_debt = debt - change.upfront_fee - change.applied_redist_bold_debt_gain
     let decrease_coll = coll - change.applied_redist_coll_gain
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.batches[manager].total_shares -= t.batch_shares
     tm.batches[manager].debt = batch_debt - decrease_debt
     tm.batches[manager].coll = batch_coll - decrease_coll
-    tm.batches[manager].last_debt_update = ctx.timestamp().downcast_truncate()
+    tm.batches[manager].last_debt_update = ctx.timestamp().as_seconds().downcast_truncate()
     tm.troves[id].batch_word &= ~data::MASK160
     tm.troves[id].batch_shares = 0
 }

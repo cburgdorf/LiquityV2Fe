@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 use std::abi::{sol, Bytes}
-use std::evm::{Address, Ctx, Call, Log, RawOps, RawStorage, encode_abi_payload}
+use std::evm::{Address, Ctx, Call, Log, RawOps, RawStorage, encode_abi_payload, wei}
 use std::evm::packed::keccak_packed
 use super::zapper_calls::*
 use super::leverage_errors as leverage_error
@@ -20,7 +20,7 @@ fn balances(_ cfg: Config, _ token: Address, _ receiver: Address) -> InitialBala
 }
 fn send_eth(_ receiver: Address, _ amount: u256) uses (ctx: Ctx, call: mut Call) {
     var out = core::ptr::MemBuffer::empty()
-    let result = call.raw_call(addr: receiver, gas: ctx.gas(), value: amount, args: core::ptr::MemSpan::empty(), ret: mut out)
+    let result = call.raw_call(addr: receiver, gas: ctx.gas(), value: wei(amount), args: core::ptr::MemSpan::empty(), ret: mut out)
     require(result.success(), error::send_failed())
 }
 fn require_code(_ target: Address) uses (ctx: Ctx) {
@@ -28,7 +28,7 @@ fn require_code(_ target: Address) uses (ctx: Ctx) {
 }
 fn deposit(_ weth: Address, _ amount: u256) uses (ctx: Ctx, call: mut Call) {
     require_code(weth)
-    call.call(addr: weth, gas: ctx.gas(), value: amount, message: ZapperCalls::Deposit {})
+    call.call(addr: weth, gas: ctx.gas(), value: wei(amount), message: ZapperCalls::Deposit {})
 }
 fn pre(_ cfg: Config, _ token: Address, _ id: u256, _ coll: u256, _ coll_increase: bool, _ debt: u256, _ debt_increase: bool) -> (Address, InitialBalances)
 uses (ctx: Ctx, call: mut Call, storage: RawStorage) {
@@ -60,11 +60,11 @@ pub contract LeverageLSTZapperLeverage {
             let add = checked_address(p.add)
             let remove = checked_address(p.remove)
             let receiver = checked_address(p.receiver)
-            require(ctx.value() == ETH_GAS_COMPENSATION, leverage_error::wrong_eth_lst())
+            require(ctx.value().as_wei() == ETH_GAS_COMPENSATION, leverage_error::wrong_eth_lst())
             require(batch == Address::zero() || p.rate == 0, leverage_error::batch_rate())
             let index = keccak_packed((ctx.caller().word(), p.index))
             let initial = balances(cfg, coll_token, ctx.caller())
-            deposit(cfg.weth, ctx.value())
+            deposit(cfg.weth, ctx.value().as_wei())
             safe_transfer_from(coll_token, ctx.caller(), ctx.address(), p.coll)
             let params = LeveragedOpenParams { owner: AddressWord::from_address(owner), index, coll: p.coll, flash: p.flash, bold: p.bold, upper: p.upper, lower: p.lower, rate: p.rate, batch: AddressWord::from_address(batch), fee: p.fee, add: AddressWord::from_address(add), remove: AddressWord::from_address(remove), receiver: AddressWord::from_address(receiver) }
             let encoded = encode_abi_payload(params)

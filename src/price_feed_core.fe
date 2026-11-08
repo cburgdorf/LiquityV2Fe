@@ -48,7 +48,7 @@ pub fn answer(_ slot: u256) -> (u256, bool) uses (ctx: Ctx, storage: RawStorage,
     }
     let decoded: (u256, i256, u256, u256, u256) = response.decode()
     if decoded.0 >> 80 != 0 || decoded.4 >> 80 != 0 { std::evm::revert(()) }
-    if ctx.timestamp() - decoded.3 >= threshold || decoded.1 <= 0 { return (0, true) }
+    if ctx.timestamp().as_seconds() - decoded.3 >= threshold || decoded.1 <= 0 { return (0, true) }
     let exponent = 18 - (decimals as u256)
     var scale: u256 = 1
     var i = 0

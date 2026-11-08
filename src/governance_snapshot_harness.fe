@@ -33,7 +33,7 @@ pub contract GovernanceSnapshotHarness {
     recv SnapshotMsg {
         Epoch -> u256 uses (cfg, ctx: Ctx) { snap::epoch(cfg) }
         Start -> u256 uses (cfg, ctx: Ctx) { snap::epoch_start(cfg) }
-        Seconds -> u256 uses (cfg, ctx: Ctx) { (ctx.timestamp() - cfg.start) % cfg.duration }
+        Seconds -> u256 uses (cfg, ctx: Ctx) { (ctx.timestamp().as_seconds() - cfg.start) % cfg.duration }
         Threshold { votes } -> u256 uses (cfg, storage: RawStorage) { snap::threshold(cfg, votes) }
         Latest -> u256 uses (cfg, storage: RawStorage) { snap::threshold(cfg, read_storage_word(3)) }
         Total -> ((u256, u256), (u256, u256), bool) uses (cfg, ctx: Ctx, storage: RawStorage) { snap::total(cfg) }

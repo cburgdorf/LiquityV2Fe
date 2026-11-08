@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 use std::evm::read_storage_word
 use std::abi::{sol, DynArray}
-use std::evm::{Address, Ctx, Call, Create, RawStorage, Log, RawOps, storage_at_mut}
+use std::evm::{Address, Ctx, Call, Create, RawStorage, Log, RawOps, storage_at, Wei}
 use super::user_proxy::UserProxy
 use super::user_proxy_factory as factory
 use super::governance_staking as staking
@@ -92,15 +92,15 @@ pub contract Governance {
     cutoff: u256,
     init(lqty_address: Address, lusd: Address, v1: Address, bold: Address, config: (u256, u256, u256, u256, u256, u256, u256, u256, u256, u256), initial_owner: Address, initial: InitialAddresses, staking_module_address: Address, voting_module_address: Address, actions_module_address: Address)
     uses (mut cfg, mut implementation, mut lqty, mut cutoff, mut staking_module, mut voting_module, mut actions_module, create: mut Create, ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
-        implementation = create.create<UserProxy>(value: 0, args: (lqty_address, lusd, v1))
-        let gov = unsafe { storage_at_mut<GovernanceLayout>(0) }
+        implementation = create.create<UserProxy>(value: Wei::zero(), args: (lqty_address, lusd, v1))
+        let gov = unsafe { mut storage_at<GovernanceLayout>(0) }
         gov.guard_status = 1
         ownership::initialize(initial_owner)
         require(config.5 <= config.6, error::min_claim())
         require(config.1 < 1000000000000000000, error::registration())
         require(config.2 > 1000000000000000000, error::unregistration())
         require(config.4 < 1000000000000000000, error::voting())
-        require(config.7 <= ctx.timestamp(), error::future())
+        require(config.7 <= ctx.timestamp().as_seconds(), error::future())
         require(config.8 > 0, error::duration())
         require(config.9 < config.8, error::cutoff())
         staking_module = staking_module_address
@@ -130,7 +130,7 @@ pub contract Governance {
     recv SnapshotMsg {
         Epoch -> u256 uses (cfg, ctx: Ctx) { snap::epoch(cfg.snapshots) }
         Start -> u256 uses (cfg, ctx: Ctx) { snap::epoch_start(cfg.snapshots) }
-        Seconds -> u256 uses (cfg, ctx: Ctx) { (ctx.timestamp() - cfg.snapshots.start) % cfg.snapshots.duration }
+        Seconds -> u256 uses (cfg, ctx: Ctx) { (ctx.timestamp().as_seconds() - cfg.snapshots.start) % cfg.snapshots.duration }
         Threshold { votes } -> u256 uses (cfg, storage: RawStorage) { snap::threshold(cfg.snapshots, votes) }
         Latest -> u256 uses (cfg, storage: RawStorage) { snap::threshold(cfg.snapshots, read_storage_word(3)) }
         Total -> ((u256, u256), (u256, u256), bool) uses (cfg, ctx: Ctx, storage: RawStorage) { snap::total(cfg.snapshots) }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 use std::abi::{sol, Bytes}
-use std::evm::{Address, Ctx, Call, Log, RawOps, RawStorage, encode_abi_payload}
+use std::evm::{Address, Ctx, Call, Log, RawOps, RawStorage, encode_abi_payload, wei}
 use std::evm::packed::keccak_packed
 use super::zapper_calls::*
 use super::zapper_base::{Config, slots, initialize, remove_receiver, check_adjust}
@@ -60,7 +60,7 @@ fn balances(_ cfg: Config, _ token: Address, _ receiver: Address) -> InitialBala
 }
 fn send_eth(_ receiver: Address, _ amount: u256) uses (ctx: Ctx, call: mut Call) {
     var out = core::ptr::MemBuffer::empty()
-    let result = call.raw_call(addr: receiver, gas: ctx.gas(), value: amount, args: core::ptr::MemSpan::empty(), ret: mut out)
+    let result = call.raw_call(addr: receiver, gas: ctx.gas(), value: wei(amount), args: core::ptr::MemSpan::empty(), ret: mut out)
     require(result.success(), error::send_failed())
 }
 fn require_code(_ target: Address) uses (ctx: Ctx) {
@@ -68,7 +68,7 @@ fn require_code(_ target: Address) uses (ctx: Ctx) {
 }
 fn deposit(_ weth: Address, _ amount: u256) uses (ctx: Ctx, call: mut Call) {
     require_code(weth)
-    call.call(addr: weth, gas: ctx.gas(), value: amount, message: ZapperCalls::Deposit {})
+    call.call(addr: weth, gas: ctx.gas(), value: wei(amount), message: ZapperCalls::Deposit {})
 }
 fn pre(_ cfg: Config, _ token: Address, _ id: u256, _ coll: u256, _ coll_increase: bool, _ debt: u256, _ debt_increase: bool) -> (Address, InitialBalances)
 uses (ctx: Ctx, call: mut Call, storage: RawStorage) {
@@ -107,9 +107,9 @@ pub contract GasCompZapper {
         GasCompZapperMsg::Exchange {} -> Address uses (cfg) { cfg.exchange }
         #[payable]
         GasCompZapperMsg::Open { p } -> u256 uses (cfg, coll_token, ctx: Ctx, call: mut Call, storage: mut RawStorage, log: mut Log) {
-            require(ctx.value() == ETH_GAS_COMPENSATION, error::wrong_eth())
+            require(ctx.value().as_wei() == ETH_GAS_COMPENSATION, error::wrong_eth())
             require(checked_address(p.batch) == Address::zero() || p.rate == 0, error::batch_rate())
-            deposit(cfg.weth, ctx.value())
+            deposit(cfg.weth, ctx.value().as_wei())
             safe_transfer_from(coll_token, ctx.caller(), ctx.address(), p.coll)
             let index = keccak_packed((ctx.caller().word(), p.index))
             let this = ctx.address()

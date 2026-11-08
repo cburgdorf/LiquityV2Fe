@@ -3,7 +3,7 @@
 // Storage writes go through the TroveManagerLayout places; each function
 // opens the layout per write phase so helper calls never overlap it.
 use core::num::IntDowncast
-use std::evm::{Address, Ctx, Call, Log, RawStorage, revert_error, storage_at, storage_at_mut}
+use std::evm::{Address, Ctx, Call, Log, RawStorage, revert_error, storage_at}
 use super::trove_data as data
 use super::trove_data::TroveManagerLayout
 use super::trove_state as state
@@ -30,14 +30,14 @@ pub fn move_rewards(_ debt: u256, _ coll: u256) uses (ctx: Ctx, storage: RawStor
 }
 pub fn open(_ owner: Address, _ id: u256, _ change: TroveChange, _ rate: u256) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
     let stake = data::new_stake(change.coll_increase)
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].debt = change.debt_increase + change.upfront_fee
     tm.troves[id].coll = change.coll_increase
     tm.troves[id].stake = stake
     tm.troves[id].status = 1
     tm.troves[id].array_index = tm.trove_ids.len().downcast_truncate()
-    tm.troves[id].last_debt_update = ctx.timestamp().downcast_truncate()
-    tm.troves[id].last_rate_adjustment = ctx.timestamp().downcast_truncate()
+    tm.troves[id].last_debt_update = ctx.timestamp().as_seconds().downcast_truncate()
+    tm.troves[id].last_rate_adjustment = ctx.timestamp().as_seconds().downcast_truncate()
     tm.troves[id].annual_rate = rate
     tm.trove_ids.push(id)
     tm.total_stakes += stake
@@ -50,18 +50,18 @@ pub fn open(_ owner: Address, _ id: u256, _ change: TroveChange, _ rate: u256) u
 }
 pub fn open_batch(_ owner: Address, _ id: u256, _ change: TroveChange, _ manager: Address, _ batch_coll: u256, _ batch_debt: u256) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
     let stake = data::new_stake(change.coll_increase)
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].coll = change.coll_increase
     tm.troves[id].stake = stake
     tm.troves[id].status = 1
     tm.troves[id].array_index = tm.trove_ids.len().downcast_truncate()
     tm.troves[id].batch_word = (tm.troves[id].batch_word & ~data::MASK160) | manager.word()
-    tm.troves[id].last_rate_adjustment = ctx.timestamp().downcast_truncate()
+    tm.troves[id].last_rate_adjustment = ctx.timestamp().as_seconds().downcast_truncate()
     data::update_rewards(id)
     state::push_trove_id(id)
     assert(change.debt_increase > 0)
     state::update_batch_shares(id, manager, change, change.debt_increase, batch_coll, batch_debt, true)
-    let tm2 = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm2 = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm2.total_stakes += stake
     let nft = tm2.trove_nft
     if ctx.extcodesize(nft) == 0 { std::evm::revert(()) }
@@ -71,27 +71,27 @@ pub fn open_batch(_ owner: Address, _ id: u256, _ change: TroveChange, _ manager
     events::current_batch(manager, 4, 0)
 }
 pub fn activate(_ id: u256) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].status = 1
     if tm.last_zombie_trove_id == id { tm.last_zombie_trove_id = 0 }
 }
 pub fn adjust_rate(_ id: u256, _ coll: u256, _ debt: u256, _ rate: u256, _ change: TroveChange) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].coll = coll
     tm.troves[id].debt = debt
     tm.troves[id].annual_rate = rate
-    tm.troves[id].last_debt_update = ctx.timestamp().downcast_truncate()
-    tm.troves[id].last_rate_adjustment = ctx.timestamp().downcast_truncate()
+    tm.troves[id].last_debt_update = ctx.timestamp().as_seconds().downcast_truncate()
+    tm.troves[id].last_rate_adjustment = ctx.timestamp().as_seconds().downcast_truncate()
     move_rewards(change.applied_redist_bold_debt_gain, change.applied_redist_coll_gain)
     data::update_rewards(id)
     events::updated(id, debt, coll, data::load_trove(id).stake, rate)
     events::operation(id, 3, rate, change, 0, 0)
 }
 pub fn adjust(_ id: u256, _ coll: u256, _ debt: u256, _ change: TroveChange) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].coll = coll
     tm.troves[id].debt = debt
-    tm.troves[id].last_debt_update = ctx.timestamp().downcast_truncate()
+    tm.troves[id].last_debt_update = ctx.timestamp().as_seconds().downcast_truncate()
     move_rewards(change.applied_redist_bold_debt_gain, change.applied_redist_coll_gain)
     let stake = data::update_stake(id, coll)
     data::update_rewards(id)
@@ -99,7 +99,7 @@ pub fn adjust(_ id: u256, _ coll: u256, _ debt: u256, _ change: TroveChange) use
     events::changed(id, 2, data::load_trove(id).annual_rate, change)
 }
 pub fn close(_ id: u256, _ change: TroveChange, _ manager: Address, _ batch_coll: u256, _ batch_debt: u256, _ status: u8) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     let len = tm.trove_ids.len()
     let is_shutdown = tm.shutdown_time != 0
     let sorted = tm.sorted_troves
@@ -113,7 +113,7 @@ pub fn close(_ id: u256, _ change: TroveChange, _ manager: Address, _ batch_coll
         if t.status == 1 { if ctx.extcodesize(sorted) == 0 { std::evm::revert(()) }
             sorted.call(SortedTrovesMsg::RemoveFromBatch { id }) }
         else if t.status == 4 {
-            let tm2 = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+            let tm2 = unsafe { mut storage_at<TroveManagerLayout>(0) }
             if tm2.last_zombie_trove_id == id { tm2.last_zombie_trove_id = 0 }
         }
         state::remove_batch_shares(id, change.coll_decrease, change.debt_decrease, change, manager, batch_coll, batch_debt)
@@ -121,11 +121,11 @@ pub fn close(_ id: u256, _ change: TroveChange, _ manager: Address, _ batch_coll
         if t.status == 1 { if ctx.extcodesize(sorted) == 0 { std::evm::revert(()) }
             sorted.call(SortedTrovesMsg::Remove { id }) }
         else if t.status == 4 {
-            let tm2 = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+            let tm2 = unsafe { mut storage_at<TroveManagerLayout>(0) }
             if tm2.last_zombie_trove_id == id { tm2.last_zombie_trove_id = 0 }
         }
     }
-    let tm3 = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm3 = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm3.total_stakes -= t.stake
     // Solidity delete clears declared fields, retaining unused packed padding.
     tm3.troves[id].debt = 0
@@ -151,7 +151,7 @@ pub fn on_close(_ id: u256, _ change: TroveChange, _ manager: Address, _ batch_c
     if manager != Address::zero() { events::current_batch(manager, 5, 0) }
 }
 pub fn adjust_batch(_ id: u256, _ coll: u256, _ debt: u256, _ change: TroveChange, _ manager: Address, _ batch_coll: u256, _ batch_debt: u256) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].coll = coll
     data::update_rewards(id)
     let stake = data::update_stake(id, coll)
@@ -163,7 +163,7 @@ pub fn adjust_batch(_ id: u256, _ coll: u256, _ debt: u256, _ change: TroveChang
     events::current_batch(manager, 6, 0)
 }
 pub fn apply_interest(_ id: u256, _ coll: u256, _ debt: u256, _ manager: Address, _ batch_coll: u256, _ batch_debt: u256, _ change: TroveChange) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].coll = coll
     if manager != Address::zero() {
         assert(debt > 0)
@@ -171,7 +171,7 @@ pub fn apply_interest(_ id: u256, _ coll: u256, _ debt: u256, _ manager: Address
         events::batch(manager, 3, batch_debt, batch_coll, 0)
     } else {
         tm.troves[id].debt = debt
-        tm.troves[id].last_debt_update = ctx.timestamp().downcast_truncate()
+        tm.troves[id].last_debt_update = ctx.timestamp().as_seconds().downcast_truncate()
     }
     move_rewards(change.applied_redist_bold_debt_gain, change.applied_redist_coll_gain)
     data::update_rewards(id)
@@ -180,41 +180,41 @@ pub fn apply_interest(_ id: u256, _ coll: u256, _ debt: u256, _ manager: Address
     events::changed(id, 4, data::load_trove(id).annual_rate, change)
 }
 pub fn register_batch(_ manager: Address, _ rate: u256, _ fee: u256) uses (ctx: Ctx, storage: mut RawStorage, log: mut Log) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.batches[manager].array_index = tm.batch_ids.len().downcast_truncate()
     tm.batches[manager].annual_rate = rate
     tm.batches[manager].annual_fee = fee
-    tm.batches[manager].last_rate_adjustment = ctx.timestamp().downcast_truncate()
+    tm.batches[manager].last_rate_adjustment = ctx.timestamp().as_seconds().downcast_truncate()
     tm.batch_ids.push(manager)
     log.emit(events::BatchUpdated { manager, operation: 0, debt: 0, coll: 0, rate, fee, shares: 0, upfront: 0 })
 }
 pub fn lower_fee(_ manager: Address, _ coll: u256, _ debt: u256, _ fee: u256) uses (ctx: Ctx, storage: mut RawStorage, log: mut Log) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.batches[manager].coll = coll
     tm.batches[manager].debt = debt
     tm.batches[manager].annual_fee = fee
-    tm.batches[manager].last_debt_update = ctx.timestamp().downcast_truncate()
+    tm.batches[manager].last_debt_update = ctx.timestamp().as_seconds().downcast_truncate()
     events::batch(manager, 1, debt, coll, 0)
 }
 pub fn set_batch_rate(_ manager: Address, _ coll: u256, _ debt: u256, _ rate: u256, _ upfront: u256) uses (ctx: Ctx, storage: mut RawStorage, log: mut Log) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.batches[manager].coll = coll
     tm.batches[manager].debt = debt
     tm.batches[manager].annual_rate = rate
-    tm.batches[manager].last_debt_update = ctx.timestamp().downcast_truncate()
-    tm.batches[manager].last_rate_adjustment = ctx.timestamp().downcast_truncate()
+    tm.batches[manager].last_debt_update = ctx.timestamp().as_seconds().downcast_truncate()
+    tm.batches[manager].last_rate_adjustment = ctx.timestamp().as_seconds().downcast_truncate()
     events::batch(manager, 2, debt, coll, upfront)
 }
 pub fn set_batch(_ id: u256, _ coll: u256, _ debt: u256, _ change: TroveChange, _ manager: Address, _ batch_coll: u256, _ batch_debt: u256) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
     var change = change
     data::update_rewards(id)
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].debt = 0
     tm.troves[id].annual_rate = 0
     tm.troves[id].last_debt_update = 0
     tm.troves[id].coll = coll
     tm.troves[id].batch_word = (tm.troves[id].batch_word & ~data::MASK160) | manager.word()
-    tm.troves[id].last_rate_adjustment = ctx.timestamp().downcast_truncate()
+    tm.troves[id].last_rate_adjustment = ctx.timestamp().as_seconds().downcast_truncate()
     change.coll_increase = coll - change.applied_redist_coll_gain
     change.debt_increase = debt - change.applied_redist_bold_debt_gain - change.upfront_fee
     assert(debt > 0)
@@ -226,12 +226,12 @@ pub fn set_batch(_ id: u256, _ coll: u256, _ debt: u256, _ change: TroveChange, 
 }
 pub fn remove_batch(_ id: u256, _ coll: u256, _ debt: u256, _ change: TroveChange, _ manager: Address, _ batch_coll: u256, _ batch_debt: u256, _ rate: u256) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
     state::remove_batch_shares(id, coll, debt, change, manager, batch_coll, batch_debt)
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.troves[id].debt = debt
     tm.troves[id].coll = coll
-    tm.troves[id].last_debt_update = ctx.timestamp().downcast_truncate()
+    tm.troves[id].last_debt_update = ctx.timestamp().as_seconds().downcast_truncate()
     tm.troves[id].annual_rate = rate
-    tm.troves[id].last_rate_adjustment = ctx.timestamp().downcast_truncate()
+    tm.troves[id].last_rate_adjustment = ctx.timestamp().as_seconds().downcast_truncate()
     data::update_rewards(id)
     move_rewards(change.applied_redist_bold_debt_gain, change.applied_redist_coll_gain)
     events::updated(id, debt, coll, data::load_trove(id).stake, rate)

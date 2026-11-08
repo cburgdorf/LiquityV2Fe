@@ -33,5 +33,5 @@ impl Decode<Sol> for TroveMemoryArray {
     }
 }
 impl Encode<Sol> for TroveMemoryArray {
-    fn encode(own self, _ out: core::abi::AbiFrame) { <DynArray<u256> as Encode<Sol>>::encode(self.values, out) }
+    fn encode(self, _ out: core::abi::AbiFrame) { <DynArray<u256> as Encode<Sol>>::encode(self.values, out) }
 }

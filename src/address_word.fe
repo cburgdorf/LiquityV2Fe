@@ -28,7 +28,7 @@ impl Decode<Sol> for AddressWord {
     }
 }
 impl Encode<Sol> for AddressWord {
-    fn encode(own self, _ out: AbiFrame) { out.store_word(at: 0, value: self.value) }
+    fn encode(self, _ out: AbiFrame) { out.store_word(at: 0, value: self.value) }
 }
 pub fn checked_address(_ value: AddressWord) -> Address {
     if value.word() >> 160 != 0 { std::evm::revert(()) }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 // TroveManager storage layout and exact individual/batch debt calculations.
 use core::num::IntDowncast
-use std::evm::{Address, Ctx, RawStorage, SolArray, StorageMap, storage_at, storage_at_mut}
+use std::evm::{Address, Ctx, RawStorage, SolArray, StorageMap, storage_at}
 use std::evm::packed::keccak_packed
 use super::constants::DECIMAL_PRECISION
 use super::liquity_math as math
@@ -28,7 +28,7 @@ pub fn batch_slot(_ manager: Address) -> u256 { map_slot(manager.word(), BATCHES
 pub fn reward_slot(_ id: u256) -> u256 { map_slot(id, REWARDS) }
 
 // The TroveManager storage region reinterpreted as typed places. One
-// raw `storage_at` or `storage_at_mut` projection establishes the region; every
+// raw `storage_at` projection (read or `mut`) establishes the region; every
 // field and entry access after that is a checked place. Entries model the
 // Solidity-packed word explicitly (`packed`), as in `sorted_troves.fe`.
 // `status`/`array_index`/timestamps pack into the fourth word exactly as in
@@ -126,7 +126,7 @@ pub fn load_batch(_ manager: Address) -> BatchRecord uses (storage: RawStorage) 
 pub fn interest_period(_ last: u256) -> u256 uses (ctx: Ctx, storage: RawStorage) {
     let tm = unsafe { ref storage_at<TroveManagerLayout>(0) }
     let stop = tm.shutdown_time
-    if stop == 0 { ctx.timestamp() - last } else if last < stop { stop - last } else { 0 }
+    if stop == 0 { ctx.timestamp().as_seconds() - last } else if last < stop { stop - last } else { 0 }
 }
 pub fn latest_batch(_ manager: Address) -> LatestBatchData uses (ctx: Ctx, storage: RawStorage) {
     let b = load_batch(manager)
@@ -191,13 +191,13 @@ pub fn new_stake(_ coll: u256) -> u256 uses (storage: RawStorage) {
 }
 pub fn update_stake(_ id: u256, _ coll: u256) -> u256 uses (storage: mut RawStorage) {
     let stake = new_stake(coll)
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     let old = tm.troves[id].stake
     tm.troves[id].stake = stake
     tm.total_stakes = tm.total_stakes - old + stake
     stake
 }
 pub fn update_rewards(_ id: u256) uses (storage: mut RawStorage) {
-    let tm = unsafe { storage_at_mut<TroveManagerLayout>(0) }
+    let tm = unsafe { mut storage_at<TroveManagerLayout>(0) }
     tm.reward_snapshots[id] = RewardSnapshot { coll: tm.l_coll, debt: tm.l_bold_debt }
 }

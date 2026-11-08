@@ -52,10 +52,10 @@ fn require_code(_ target: Address) uses (ctx: Ctx) {
 impl ActiveAccounting {
     pub fn pending_interest(self) -> u256 uses (ctx: Ctx) {
         if self.shutdown != 0 { return 0 }
-        ceil_interest(self.weighted_debt, ctx.timestamp() - self.last_update)
+        ceil_interest(self.weighted_debt, ctx.timestamp().as_seconds() - self.last_update)
     }
     pub fn pending_batch_fee(self) -> u256 uses (ctx: Ctx) {
-        let end = if self.shutdown != 0 { self.shutdown } else { ctx.timestamp() }
+        let end = if self.shutdown != 0 { self.shutdown } else { ctx.timestamp().as_seconds() }
         let start = liquity_math::min(self.last_batch_update, end)
         ceil_interest(self.weighted_batch_fees, end - start)
     }
@@ -226,7 +226,7 @@ pub contract ActivePool uses (ctx: Ctx, call: mut Call, log: mut Log) {
         HasBeenShutDown -> bool uses (accounting) { accounting.shutdown != 0 }
         SetShutdownFlag uses (cfg, mut accounting, ctx) {
             text::require(ctx.caller() == cfg.manager, text::active_tm())
-            accounting.shutdown = ctx.timestamp()
+            accounting.shutdown = ctx.timestamp().as_seconds()
         }
         SendColl { account, amount } uses (cfg, mut accounting, ctx, mut call, mut log) {
             text::require(ctx.caller() == cfg.borrower_operations || ctx.caller() == cfg.manager || ctx.caller() == cfg.stability_pool, text::active_bo_tm_sp())
@@ -252,7 +252,7 @@ pub contract ActivePool uses (ctx: Ctx, call: mut Call, log: mut Log) {
             text::require(ctx.caller() == cfg.borrower_operations || ctx.caller() == cfg.stability_pool, text::active_bo_sp())
             let minted = accounting.pending_interest()
             distribute_interest(minted, cfg.clone())
-            accounting.last_update = ctx.timestamp()
+            accounting.last_update = ctx.timestamp().as_seconds()
             accounting.recorded_debt += minted
         }
         AccountTroveChange { change, batch } uses (cfg, mut accounting, ctx, mut call) {
@@ -260,12 +260,12 @@ pub contract ActivePool uses (ctx: Ctx, call: mut Call, log: mut Log) {
             if batch != Address::zero() {
                 accounting.account_batch_fee(change)
                 distribute_batch_fee(change.batch_accrued_management_fee, batch, cfg.clone())
-                accounting.last_batch_update = ctx.timestamp()
+                accounting.last_batch_update = ctx.timestamp().as_seconds()
             }
             var debt = accounting.recorded_debt
             let minted = accounting.pending_interest() + change.upfront_fee
             distribute_interest(minted, cfg.clone())
-            accounting.last_update = ctx.timestamp()
+            accounting.last_update = ctx.timestamp().as_seconds()
             debt += minted
             debt += change.applied_redist_bold_debt_gain
             debt += change.debt_increase
@@ -280,7 +280,7 @@ pub contract ActivePool uses (ctx: Ctx, call: mut Call, log: mut Log) {
             text::require(ctx.caller() == cfg.manager, text::active_tm())
             accounting.account_batch_fee(change)
             distribute_batch_fee(change.batch_accrued_management_fee, batch, cfg.clone())
-            accounting.last_batch_update = ctx.timestamp()
+            accounting.last_batch_update = ctx.timestamp().as_seconds()
         }
     }
 }

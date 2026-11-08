@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 use core::num::IntDowncast
 use std::abi::{sol, Bytes32}
-use std::evm::{Address, Ctx, Call, RawOps}
+use std::evm::{Address, Ctx, Call, RawOps, wei}
 use super::address_word::{AddressWord, checked_address}
 use super::token_calls::TokenMsg
 use super::leftovers_sweep::BalanceMsg
@@ -50,7 +50,7 @@ uses (ctx: Ctx, call: mut Call) {
     if lusd > 0 { let ignored = cfg.lusd.call(TokenMsg::Transfer { receiver: recipient, amount: lusd }) }
     if eth > 0 {
         var output = core::ptr::MemBuffer::empty()
-        let result = call.raw_call(addr: recipient, gas: ctx.gas(), value: eth, args: core::ptr::MemSpan::empty(), ret: mut output)
+        let result = call.raw_call(addr: recipient, gas: ctx.gas(), value: wei(eth), args: core::ptr::MemSpan::empty(), ret: mut output)
         require(result.success(), error::eth())
     }
     (lusd, eth)
@@ -59,12 +59,12 @@ fn stake(_ cfg: Config, _ amount: u256, _ from: Address, _ send: bool, _ recipie
 uses (ctx: Ctx, call: mut Call) {
     require(ctx.caller() == cfg.v2, error::caller())
     let before_lusd = cfg.lusd.static(BalanceMsg::Balance { account: ctx.address() })
-    let before_eth = ctx.selfbalance()
+    let before_eth = ctx.selfbalance().as_wei()
     let ignored = cfg.lqty.call(TokenMsg::TransferFrom { owner: from, receiver: ctx.address(), amount })
     require_code(cfg.staking)
     cfg.staking.call(ProxyCalls::Stake { amount })
     let lusd = cfg.lusd.static(BalanceMsg::Balance { account: ctx.address() })
-    let eth = ctx.selfbalance()
+    let eth = ctx.selfbalance().as_wei()
     let received_lusd = lusd - before_lusd
     let received_eth = eth - before_eth
     let (sent_lusd, sent_eth) = if send { send_rewards(cfg, recipient, lusd, eth) } else { (0, 0) }
@@ -98,12 +98,12 @@ pub contract UserProxy {
             require(ctx.caller() == cfg.v2, error::caller())
             let before_lqty = cfg.lqty.static(BalanceMsg::Balance { account: ctx.address() })
             let before_lusd = cfg.lusd.static(BalanceMsg::Balance { account: ctx.address() })
-            let before_eth = ctx.selfbalance()
+            let before_eth = ctx.selfbalance().as_wei()
             require_code(cfg.staking)
             cfg.staking.call(ProxyCalls::Unstake { amount })
             let lqty = cfg.lqty.static(BalanceMsg::Balance { account: ctx.address() })
             let lusd = cfg.lusd.static(BalanceMsg::Balance { account: ctx.address() })
-            let eth = ctx.selfbalance()
+            let eth = ctx.selfbalance().as_wei()
             let received_lqty = lqty - before_lqty
             let received_lusd = lusd - before_lusd
             let received_eth = eth - before_eth

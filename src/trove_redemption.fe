@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 use std::evm::read_storage_word
 use core::num::IntDowncast
-use std::abi::{sol, DynArray, DynArrayAccess}
+use std::abi::{sol, DynArray}
 use std::evm::{Address, Ctx, Call, Log, RawStorage, revert_error}
 use super::trove_data as data
 use super::trove_state as state
@@ -41,7 +41,7 @@ pub fn require_code(_ target: Address) uses (ctx: Ctx) {
 pub fn update_batch(_ active: Address, _ manager: Address) uses (ctx: Ctx, storage: mut RawStorage, call: mut Call) {
     let b = data::latest_batch(manager)
     unsafe { storage.sstore(slot: data::batch_slot(manager), value: b.entire_debt_without_redistribution) }
-    state::set_batch_debt_time(manager, ctx.timestamp())
+    state::set_batch_debt_time(manager, ctx.timestamp().as_seconds())
     var change = TroveChange::zero()
     change.old_weighted_recorded_debt = b.weighted_recorded_debt
     change.new_weighted_recorded_debt = b.entire_debt_without_redistribution * b.annual_interest_rate
@@ -80,7 +80,7 @@ pub fn apply_single(_ single: Single) -> Single uses (ctx: Ctx, storage: mut Raw
         s.new_weighted = debt * t.annual_interest_rate
         unsafe { storage.sstore(slot: base, value: debt) }
         unsafe { storage.sstore(slot: base + 1, value: coll) }
-        state::set_trove_debt_time(s.id, ctx.timestamp())
+        state::set_trove_debt_time(s.id, ctx.timestamp().as_seconds())
     }
     let stake = data::update_stake(s.id, coll)
     hooks::move_rewards(t.redist_bold_debt_gain, t.redist_coll_gain)
@@ -172,7 +172,7 @@ pub fn urgent(_ amount: u256, _ ids: DynArray<u256>, _ min_coll: u256) uses (ctx
     let feed = Address::from_word_truncate(read_storage_word(2))
     let price = feed.call(PriceMsg::Price {}).0
     var remaining = amount
-    var i: u256 = 0
+    var i: usize = 0
     while i < ids.len() {
         if remaining == 0 { break }
         let id = ids.get(i)

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 use core::num::IntDowncast
-use std::abi::{DynArray, DynArrayAccess, MemVec}
+use std::abi::DynArray
 use std::evm::{Address, Ctx, RawStorage, Call, Log}
 use super::governance_actions::ActionConfig
 use super::governance_allocation as allocation
@@ -27,11 +27,11 @@ fn no_negatives(_ values: DynArray<i256>) {
 fn reset_inner(_ cfg: ActionConfig, _ targets: DynArray<Address>) -> DynArray<i256>
 uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
     let n = targets.len()
-    var cached: MemVec<i256> = MemVec::zeroed(n)
-    var votes: MemVec<i256> = MemVec::zeroed(n)
-    var vetos: MemVec<i256> = MemVec::zeroed(n)
-    var vote_offsets: MemVec<i256> = MemVec::zeroed(n)
-    var veto_offsets: MemVec<i256> = MemVec::zeroed(n)
+    var cached: MemArray<i256> = MemArray::new_zeroed(n)
+    var votes: MemArray<i256> = MemArray::new_zeroed(n)
+    var vetos: MemArray<i256> = MemArray::new_zeroed(n)
+    var vote_offsets: MemArray<i256> = MemArray::new_zeroed(n)
+    var veto_offsets: MemArray<i256> = MemArray::new_zeroed(n)
     var i = 0
     while i < n {
         let old = allocation::read_allocation(ctx.caller(), targets.get(i))
@@ -40,15 +40,15 @@ uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
         let t: i256 = old.2.downcast_truncate()
         let ov: i256 = old.1.downcast_truncate()
         let ot: i256 = old.3.downcast_truncate()
-        cached.set(index: i, value: v)
-        votes.set(index: i, value: -v)
-        vetos.set(index: i, value: -t)
-        vote_offsets.set(index: i, value: -ov)
-        veto_offsets.set(index: i, value: -ot)
+        cached.set(i, v)
+        votes.set(i, -v)
+        vetos.set(i, -t)
+        vote_offsets.set(i, -ov)
+        veto_offsets.set(i, -ot)
         i += 1
     }
-    allocation::apply(cfg, targets, votes.to_dyn_array(), vetos.to_dyn_array(), vote_offsets.to_dyn_array(), veto_offsets.to_dyn_array())
-    cached.to_dyn_array()
+    allocation::apply(cfg, targets, DynArray::from_slice(votes.as_slice()), DynArray::from_slice(vetos.as_slice()), DynArray::from_slice(vote_offsets.as_slice()), DynArray::from_slice(veto_offsets.as_slice()))
+    DynArray::from_slice(cached.as_slice())
 }
 pub fn reset(_ cfg: ActionConfig, _ targets: DynArray<Address>, _ check_all: bool)
 uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
@@ -76,7 +76,7 @@ uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
     var user = allocation::read_user(ctx.caller())
     require(user.2 == 0, error::reset())
     require(user.0 != 0, error::insufficient())
-    if (ctx.timestamp() - cfg.snapshots.start) % cfg.snapshots.duration > cutoff {
+    if (ctx.timestamp().as_seconds() - cfg.snapshots.start) % cfg.snapshots.duration > cutoff {
         i = 0
         while i < targets.len() {
             var found = false
@@ -93,8 +93,8 @@ uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
             i += 1
         }
     }
-    var offsets_v: MemVec<i256> = MemVec::zeroed(targets.len())
-    var offsets_t: MemVec<i256> = MemVec::zeroed(targets.len())
+    var offsets_v: MemArray<i256> = MemArray::new_zeroed(targets.len())
+    var offsets_t: MemArray<i256> = MemArray::new_zeroed(targets.len())
     i = 0
     while i < targets.len() {
         let is_vote = votes.get(i) > 0
@@ -102,14 +102,14 @@ uses (ctx: Ctx, storage: mut RawStorage, call: mut Call, log: mut Log) {
         let offset = user.1 * qty / user.0
         user.0 -= qty
         user.1 -= offset
-        if is_vote { offsets_v.set(index: i, value: offset.downcast_truncate()) }
-        else { offsets_t.set(index: i, value: offset.downcast_truncate()) }
+        if is_vote { offsets_v.set(i, offset.downcast_truncate()) }
+        else { offsets_t.set(i, offset.downcast_truncate()) }
         i += 1
     }
     // Solidity copies address[] calldata to memory at this call boundary.
     i = 0
     while i < targets.len() { let checked = targets.get(i)
         i += 1 }
-    allocation::apply(cfg, targets, votes, vetos, offsets_v.to_dyn_array(), offsets_t.to_dyn_array())
+    allocation::apply(cfg, targets, votes, vetos, DynArray::from_slice(offsets_v.as_slice()), DynArray::from_slice(offsets_t.as_slice()))
     guard::exit()
 }

@@ -29,7 +29,7 @@ uses (ctx: Ctx, storage: mut RawStorage, create: mut Create, log: mut Log) {
     if ctx.extcodesize(proxy) == 0 { let deployed = factory::deploy(implementation) }
     let s = map(ctx.caller(), 8)
     unsafe { storage.sstore(slot: s, value: read_storage_word(s) + amount) }
-    unsafe { storage.sstore(slot: s + 1, value: read_storage_word(s + 1) + ctx.timestamp() * amount) }
+    unsafe { storage.sstore(slot: s + 1, value: read_storage_word(s + 1) + ctx.timestamp().as_seconds() * amount) }
     proxy
 }
 fn deposit_event(_ amount: u256, _ recipient: Address, _ rewards: (u256, u256, u256, u256)) uses (ctx: Ctx, log: mut Log) {

@@ -55,7 +55,7 @@ uses (ctx: Ctx, call: mut Call, storage: mut RawStorage) {
     let manager = data::address_at(5)
     let active = data::address_at(0)
     let b = manager.static(TroveManagerMsg::LatestBatch { manager: ctx.caller() })
-    if ctx.timestamp() < b.last_interest_rate_adj_time + registered.min_period { revert_error(BatchInterestRateChangePeriodNotPassed {}) }
+    if ctx.timestamp().as_seconds() < b.last_interest_rate_adj_time + registered.min_period { revert_error(BatchInterestRateChangePeriodNotPassed {}) }
     var debt = b.entire_debt_without_redistribution
     var change = TroveChange::zero()
     change.batch_accrued_management_fee = b.accrued_management_fee
@@ -63,7 +63,7 @@ uses (ctx: Ctx, call: mut Call, storage: mut RawStorage) {
     change.new_weighted_recorded_debt = debt * rate
     change.old_weighted_recorded_batch_management_fee = b.weighted_recorded_batch_management_fee
     change.new_weighted_recorded_batch_management_fee = debt * b.annual_management_fee
-    if b.annual_interest_rate != rate && ctx.timestamp() < b.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN {
+    if b.annual_interest_rate != rate && ctx.timestamp().as_seconds() < b.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN {
         let price = checks::live_price()
         let avg = active.static(ActivePoolMsg::NewAverage { change })
         change.upfront_fee = math::calc_interest(debt * avg, UPFRONT_INTEREST_PERIOD)
@@ -150,7 +150,7 @@ uses (ctx: Ctx, call: mut Call, storage: mut RawStorage) {
     change.batch_accrued_management_fee = b.accrued_management_fee
     change.old_weighted_recorded_debt = b.weighted_recorded_debt
     change.new_weighted_recorded_debt = future * b.annual_interest_rate + debt * rate
-    if b.annual_interest_rate != rate && ctx.timestamp() < t.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN {
+    if b.annual_interest_rate != rate && ctx.timestamp().as_seconds() < t.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN {
         let (new_debt, updated) = apply_fee(cfg, t.entire_coll, debt, change, max_fee, false)
         debt = new_debt
         change = updated

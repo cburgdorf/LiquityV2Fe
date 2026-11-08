@@ -63,7 +63,7 @@ pub fn campaign_data(_ cfg: Config) -> Bytes {
     let words: [u256; 20] = [416, 0, cfg.fees as u256, cfg.weight0 as u256, cfg.weight1 as u256, 480, 512, 576, 0, 0, 0, 0, 608, 32, cfg.pool.val, 0, 1, SAFE.word(), 0, 0]
     var i: usize = 0
     while i < 20 {
-        unsafe { core::abi::store_word(ptr: core::ptr::offset_bytes(p, (i as u256) * 32), value: words[i]) }
+        unsafe { core::abi::store_word(ptr: core::ptr::offset_bytes(p, i * 32), value: words[i]) }
         i += 1
     }
     Bytes::from_payload(source: unsafe { core::ptr::MemSpan::from_raw_parts(ptr: p, len: 640) })

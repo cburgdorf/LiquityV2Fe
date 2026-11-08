@@ -22,7 +22,7 @@ pub fn batch_of(_ id: u256) -> Address uses (storage: RawStorage) {
     Address::new(batches[id] & MASK160)
 }
 pub fn set_batch(_ id: u256, _ manager: Address) uses (storage: mut RawStorage) {
-    let batches = unsafe { StorageMap<u256, u256>::at(BATCH_OF) }
+    let batches = unsafe { mut StorageMap<u256, u256>::at(BATCH_OF) }
     batches[id] = (batches[id] & ~MASK160) | manager.word()
 }
 pub struct IndividualDelegate {
@@ -51,7 +51,7 @@ pub fn delegate(_ id: u256) -> IndividualDelegate uses (storage: RawStorage) {
     IndividualDelegate { account: Address::new(e.account_word & MASK160), min_rate: e.min_rate, max_rate: e.max_rate, min_period: e.min_period }
 }
 pub fn set_delegate(_ id: u256, _ value: IndividualDelegate) uses (storage: mut RawStorage) {
-    let delegates = unsafe { StorageMap<u256, DelegateEntry>::at(DELEGATES) }
+    let delegates = unsafe { mut StorageMap<u256, DelegateEntry>::at(DELEGATES) }
     delegates[id].account_word = (delegates[id].account_word & ~MASK160) | value.account.word()
     delegates[id].min_rate = value.min_rate
     delegates[id].max_rate = value.max_rate
@@ -66,6 +66,6 @@ pub fn batch_manager(_ manager: Address) -> BatchManager uses (storage: RawStora
     BatchManager { min_rate: e.min_rate, max_rate: e.max_rate, min_period: e.min_period }
 }
 pub fn set_batch_manager(_ manager: Address, _ value: BatchManager) uses (storage: mut RawStorage) {
-    let managers = unsafe { StorageMap<Address, BatchManagerEntry>::at(BATCH_MANAGERS) }
+    let managers = unsafe { mut StorageMap<Address, BatchManagerEntry>::at(BATCH_MANAGERS) }
     managers[manager] = BatchManagerEntry { min_rate: value.min_rate, max_rate: value.max_rate, min_period: value.min_period }
 }

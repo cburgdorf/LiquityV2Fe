@@ -75,6 +75,6 @@ pub fn delegate_adjustment(_ id: u256, _ last_adjustment: u256, _ new_rate: u256
     let delegate = data::delegate(id)
     if delegate.account == ctx.caller() {
         range(new_rate, delegate.min_rate as u256, delegate.max_rate as u256)
-        if ctx.timestamp() < last_adjustment + delegate.min_period { revert_error(DelegateInterestRateChangePeriodNotPassed {}) }
+        if ctx.timestamp().as_seconds() < last_adjustment + delegate.min_period { revert_error(DelegateInterestRateChangePeriodNotPassed {}) }
     }
 }

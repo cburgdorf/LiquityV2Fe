@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 use std::evm::read_storage_word
 use core::num::IntDowncast
-use std::abi::{sol, DynArray, DynArrayAccess}
+use std::abi::{sol, DynArray}
 use std::evm::{Address, Ctx, Call, Log, RawStorage, revert_error}
 use super::trove_data as data
 use super::trove_hooks as hooks
@@ -129,7 +129,7 @@ pub fn liquidate(_ ids: DynArray<u256>, _ mcr: u256, _ sp_penalty: u256, _ redis
     let price = feed.call(PriceMsg::Price {}).0
     let deposits = sp.static(StabilityPoolMsg::TotalBoldDeposits {})
     var remaining = deposits - math::min(MIN_BOLD_IN_SP, deposits)
-    var i: u256 = 0
+    var i: usize = 0
     while i < ids.len() {
         let id = ids.get(i)
         i += 1

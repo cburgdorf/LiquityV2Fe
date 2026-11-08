@@ -30,4 +30,4 @@ impl Decode<Sol> for BatchId {
         Self { value: Address::new(value) }
     }
 }
-impl Encode<Sol> for BatchId { fn encode(own self, _ out: core::abi::AbiFrame) { <Address as Encode<Sol>>::encode(self.value, out) } }
+impl Encode<Sol> for BatchId { fn encode(self, _ out: core::abi::AbiFrame) { <Address as Encode<Sol>>::encode(self.value, out) } }

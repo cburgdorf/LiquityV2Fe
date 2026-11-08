@@ -24,7 +24,7 @@ pub contract FixedAssetReader {
         pointer_address = pointer
         text::require(sigs.len() == assets.len(), text::asset_invalid_input())
         var i: u256 = 0
-        while i < sigs.len() {
+        while i < (sigs.len() as u256) {
             let sig = <Bytes4 as Decode<Sol>>::decode_from(sigs.encoded_span(), 32 + i * 32)
             let asset = <(u128, u128) as Decode<Sol>>::decode_from(assets.encoded_span(), 32 + i * 64)
             unsafe { storage.sstore(slot: asset_slot(sig), value: (asset.0 as u256) | ((asset.1 as u256) << 128)) }
@@ -49,7 +49,7 @@ pub contract FixedAssetReader {
             let capped_end = if end < 0xffff { end } else { 0xffff }
             let clipped_end = if capped_end < available { capped_end } else { available }
             let len = if start < clipped_end { clipped_end - start } else { 0 }
-            var output = MemBuffer::alloc(len)
+            var output = MemBuffer::new(len.downcast_unchecked())
             ctx.extcodecopy(pointer_address, dest: mut output, dest_offset: 0, src_offset: start + 1, len)
             DynString::from_payload(source: output.span())
         }

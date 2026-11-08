@@ -48,14 +48,14 @@ pub contract UniV3Exchange {
             let initial = snapshot([coll, bold, Address::zero(), Address::zero()], ctx.caller())
             let ignored_transfer = bold.call(TokenMsg::TransferFrom { owner: ctx.caller(), receiver: ctx.address(), amount })
             let ignored_approval = bold.call(CurveCalls::Approve { spender: router, amount })
-            let ignored_swap = router.call(UniCalls::Output { p: (bold, coll, fee, ctx.caller(), ctx.timestamp(), minimum, amount, Uint160 { val: 0 }) })
+            let ignored_swap = router.call(UniCalls::Output { p: (bold, coll, fee, ctx.caller(), ctx.timestamp().as_seconds(), minimum, amount, Uint160 { val: 0 }) })
             return_leftovers(initial)
         }
         UniExchangeMsg::ToBold { amount, minimum } -> u256 uses (coll, bold, fee, router, ctx: Ctx, call: mut Call) {
             let initial = snapshot([coll, bold, Address::zero(), Address::zero()], ctx.caller())
             safe_transfer_from(coll, ctx.caller(), ctx.address(), amount)
             let ignored_approval = coll.call(CurveCalls::Approve { spender: router, amount })
-            let output = router.call(UniCalls::Input { p: (coll, bold, fee, ctx.caller(), ctx.timestamp(), amount, minimum, Uint160 { val: 0 }) })
+            let output = router.call(UniCalls::Input { p: (coll, bold, fee, ctx.caller(), ctx.timestamp().as_seconds(), amount, minimum, Uint160 { val: 0 }) })
             return_leftovers(initial)
             output
         }

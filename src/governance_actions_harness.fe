@@ -1,5 +1,5 @@
 use std::abi::sol
-use std::evm::{Address, Ctx, RawStorage, Call, Log, Create}
+use std::evm::{Address, Ctx, RawStorage, Call, Log, Create, Wei}
 use super::governance_actions::{self as action, ActionConfig}
 use super::governance_snapshots::SnapshotConfig
 use super::user_proxy::UserProxy
@@ -17,7 +17,7 @@ pub msg ActionMsg {
 pub contract GovernanceActionsHarness {
     cfg: ActionConfig,
     init(bold: Address, staking: Address, fee: u256, factor: u256) uses (mut cfg, create: mut Create, storage: mut RawStorage) {
-        let implementation = create.create<UserProxy>(value: 0, args: (Address::new(1), Address::new(2), staking))
+        let implementation = create.create<UserProxy>(value: Wei::zero(), args: (Address::new(1), Address::new(2), staking))
         cfg = ActionConfig { snapshots: SnapshotConfig { bold, start: 1000, duration: 100, min_claim: 1000000000000000000, min_accrual: 5000000000000000000, voting_factor: 10000000000000000, unregister_factor: 2000000000000000000, unregister_epochs: 4 }, implementation, staking, fee, factor }
         unsafe { storage.sstore(slot: 0, value: 1) }
     }

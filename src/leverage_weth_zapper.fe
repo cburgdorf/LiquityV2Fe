@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 use std::abi::{sol, Bytes}
-use std::evm::{Address, Ctx, Create, Call, Log, RawOps, RawStorage, encode_abi_payload}
+use std::evm::{Address, Ctx, Create, Call, Log, RawOps, RawStorage, encode_abi_payload, wei, Wei}
 use std::evm::packed::keccak_packed
 use super::zapper_calls::*
 use super::leverage_weth_zapper_module::LeverageWETHZapperLeverage
@@ -69,7 +69,7 @@ fn balances(_ cfg: Config, _ receiver: Address) -> InitialBalances uses (ctx: Ct
 }
 fn send_eth(_ receiver: Address, _ amount: u256) uses (ctx: Ctx, call: mut Call) {
     var out = core::ptr::MemBuffer::empty()
-    let result = call.raw_call(addr: receiver, gas: ctx.gas(), value: amount, args: core::ptr::MemSpan::empty(), ret: mut out)
+    let result = call.raw_call(addr: receiver, gas: ctx.gas(), value: wei(amount), args: core::ptr::MemSpan::empty(), ret: mut out)
     require(result.success(), error::send_failed())
 }
 fn require_code(_ target: Address) uses (ctx: Ctx) {
@@ -77,12 +77,12 @@ fn require_code(_ target: Address) uses (ctx: Ctx) {
 }
 fn deposit(_ weth: Address, _ amount: u256) uses (ctx: Ctx, call: mut Call) {
     require_code(weth)
-    call.call(addr: weth, gas: ctx.gas(), value: amount, message: ZapperCalls::Deposit {})
+    call.call(addr: weth, gas: ctx.gas(), value: wei(amount), message: ZapperCalls::Deposit {})
 }
 fn pre(_ cfg: Config, _ id: u256, _ coll: u256, _ coll_increase: bool, _ debt: u256, _ debt_increase: bool) -> (Address, InitialBalances)
 uses (ctx: Ctx, call: mut Call, storage: RawStorage) {
-    if coll_increase { require(coll == ctx.value(), error::wrong_coll()) }
-    else { require(ctx.value() == 0, error::no_eth()) }
+    if coll_increase { require(coll == ctx.value().as_wei(), error::wrong_coll()) }
+    else { require(ctx.value().as_wei() == 0, error::no_eth()) }
     let receiver = check_adjust(cfg, id, coll, coll_increase, debt_increase)
     let initial = balances(cfg, ctx.caller())
     if coll_increase { deposit(cfg.weth, coll) }
@@ -109,7 +109,7 @@ pub contract LeverageWETHZapper {
         let ignored = config.weth.call(ZapperCalls::Approve { spender: config.bo, amount: MAX_UINT256 })
         let ignored2 = config.weth.call(ZapperCalls::Approve { spender: exchange, amount: MAX_UINT256 })
         let ignored_bold = config.bold.call(ZapperCalls::Approve { spender: exchange, amount: MAX_UINT256 })
-        leverage_module = create.create<LeverageWETHZapperLeverage>(value: 0, args: (config.nft, config.bo, config.manager, config.bold, config.weth, config.flash, config.exchange))
+        leverage_module = create.create<LeverageWETHZapperLeverage>(value: Wei::zero(), args: (config.nft, config.bo, config.manager, config.bold, config.weth, config.flash, config.exchange))
         cfg = config
     }
     recv {
@@ -121,15 +121,15 @@ pub contract LeverageWETHZapper {
         LeverageWETHZapperMsg::Exchange {} -> Address uses (cfg) { cfg.exchange }
         #[payable]
         LeverageWETHZapperMsg::Open { p } -> u256 uses (cfg, ctx: Ctx, call: mut Call, storage: mut RawStorage, log: mut Log) {
-            require(ctx.value() > ETH_GAS_COMPENSATION, error::insufficient_eth())
+            require(ctx.value().as_wei() > ETH_GAS_COMPENSATION, error::insufficient_eth())
             require(checked_address(p.batch) == Address::zero() || p.rate == 0, error::batch_rate())
-            deposit(cfg.weth, ctx.value())
+            deposit(cfg.weth, ctx.value().as_wei())
             let index = keccak_packed((ctx.caller().word(), p.index))
             let this = ctx.address()
             let id = if checked_address(p.batch) == Address::zero() {
-                cfg.bo.call(ZapperCalls::Open { owner: checked_address(p.owner), index, coll: ctx.value() - ETH_GAS_COMPENSATION, bold: p.bold, upper: p.upper, lower: p.lower, rate: p.rate, fee: p.fee, add: this, remove: this, receiver: this })
+                cfg.bo.call(ZapperCalls::Open { owner: checked_address(p.owner), index, coll: ctx.value().as_wei() - ETH_GAS_COMPENSATION, bold: p.bold, upper: p.upper, lower: p.lower, rate: p.rate, fee: p.fee, add: this, remove: this, receiver: this })
             } else {
-                cfg.bo.call(ZapperCalls::OpenBatch { p: (checked_address(p.owner), index, ctx.value() - ETH_GAS_COMPENSATION, p.bold, p.upper, p.lower, checked_address(p.batch), p.fee, this, this, this) })
+                cfg.bo.call(ZapperCalls::OpenBatch { p: (checked_address(p.owner), index, ctx.value().as_wei() - ETH_GAS_COMPENSATION, p.bold, p.upper, p.lower, checked_address(p.batch), p.fee, this, this, this) })
             }
             let ignored = cfg.bold.call(TokenMsg::Transfer { receiver: ctx.caller(), amount: p.bold })
             managers::set_add(slots(), id, checked_address(p.add))
@@ -140,9 +140,9 @@ pub contract LeverageWETHZapper {
         LeverageWETHZapperMsg::Add { id } uses (cfg, ctx: Ctx, call: mut Call, storage: RawStorage) {
             let owner = cfg.nft.static(TroveNFTMsg::OwnerOf { id })
             managers::require_owner_or_add(slots(), id, owner)
-            deposit(cfg.weth, ctx.value())
+            deposit(cfg.weth, ctx.value().as_wei())
             require_code(cfg.bo)
-            cfg.bo.call(ZapperCalls::Add { id, amount: ctx.value() })
+            cfg.bo.call(ZapperCalls::Add { id, amount: ctx.value().as_wei() })
         }
         LeverageWETHZapperMsg::WithdrawColl { id, amount } uses (cfg, ctx: Ctx, call: mut Call, storage: RawStorage) {
             let receiver = remove_receiver(cfg, id)

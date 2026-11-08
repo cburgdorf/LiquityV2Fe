@@ -21,6 +21,6 @@ pub contract GovernanceMulticallHarness {
             (ctx.caller(), value) }
         Value -> u256 uses (storage: RawStorage) { read_storage_word(0) }
         Echo { data } -> Bytes { data }
-        Fail { data } uses (ops: mut RawOps) { ops.revert(data: data.payload_span()) }
+        Fail { data } uses (ops: mut RawOps) { ops.revert(data: data.span()) }
     }
 }

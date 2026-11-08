@@ -133,7 +133,7 @@ uses (ctx: Ctx, call: mut Call, storage: mut RawStorage) {
     change.applied_redist_coll_gain = t.redist_coll_gain
     change.new_weighted_recorded_debt = debt * rate
     change.old_weighted_recorded_debt = t.weighted_recorded_debt
-    if ctx.timestamp() < t.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN {
+    if ctx.timestamp().as_seconds() < t.last_interest_rate_adj_time + INTEREST_RATE_ADJ_COOLDOWN {
         let (new_debt, new_change) = apply_fee(cfg, t.entire_coll, debt, change, max_fee, false)
         debt = new_debt
         change = new_change

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-use std::evm::{Address, Ctx, Call}
+use std::evm::{Address, Ctx, Call, wei}
 use std::abi::DynString
 use super::revert_texts::require
 #[arithmetic(unchecked)]
@@ -11,6 +11,6 @@ pub fn safe_call(_ target: Address, _ gas: u256, _ value: u256, _ data: core::pt
 uses (ctx: Ctx, call: mut Call) {
     require(has_min_gas(gas, 1000), gas_error())
     var ignored = core::ptr::MemBuffer::empty()
-    let result = call.raw_call(addr: target, gas, value, args: data, ret: mut ignored)
+    let result = call.raw_call(addr: target, gas, value: wei(value), args: data, ret: mut ignored)
     result.success()
 }
