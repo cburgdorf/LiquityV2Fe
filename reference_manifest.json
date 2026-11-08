@@ -4,10 +4,11 @@
     "revision": "c8a5a4ee2e9dc024905856b6698a77d849c68c7e"
   },
   "compiler": {
-    "url": "https://github.com/sbillig/fe",
-    "branch": "liquity-master-refresh",
-    "revision": "82742057924ba9474efb1e3574f0bf1ffd01ce08",
-    "tree": "4351fe131427c59fa114e087076988ee61219187"
+    "url": "https://github.com/argotorg/fe",
+    "branch": "master",
+    "revision": "22b156fffc794bb25eaf4dac124ff71ae5aa01e1",
+    "tree": "4d363631bff26efabb34166999fe87e4b5a53f12",
+    "sonatina": "37c7c0aa8097310872ad3a484b23463c0e38cfc0"
   },
   "sources": {
     "contracts/src/ActivePool.sol": "61db32fda189278a0e13b68dbfa5c3e4d2a2445dd8415ca7e044517723567e0b",

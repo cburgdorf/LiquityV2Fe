@@ -12,10 +12,14 @@ and zappers. Source mappings and their verification scope are in `port_status.js
 `governance_status.json`. Governance and connected initiative lifecycles are included.
 
 `reference_manifest.json` pins the Solidity reference and Fe compiler at
-[`sbillig/fe` revision `827420579`](https://github.com/sbillig/fe/tree/82742057924ba9474efb1e3574f0bf1ffd01ce08)
-on `liquity-master-refresh`. This combines upstream master `f69b911ce` with
-[custom struct ABI wire types](https://github.com/argotorg/fe/pull/1827) and
-[Snapshot call checking](https://github.com/argotorg/fe/pull/1828).
+[`argotorg/fe` master `22b156fff`](https://github.com/argotorg/fe/tree/22b156fffc794bb25eaf4dac124ff71ae5aa01e1)
+with Sonatina `37c7c0aa`. Master includes the
+[custom struct ABI wire types](https://github.com/argotorg/fe/pull/1827) fix.
+[Snapshot call checking](https://github.com/argotorg/fe/pull/1828) is still open:
+without it, `fe check` rejects StabilityPool's four calls through its
+`active_pool` storage address (error 16-0001), so the ingot does not check on
+this pin until #1828 lands. Fe compiles for Osaka (CLZ), so Foundry runs the
+differential suite under Osaka while compiling the Solidity reference for Cancun.
 The compiler lives in `toolchain/fe`; bootstrap and the test suite reject
 compiler source or binary drift. Compiler investigations are recorded in
 `COMPILER_FIXES.md`.
@@ -96,16 +100,19 @@ all image/status variants and pinned production font/logo assets. MetadataNFT cr
 a stateless rendering companion in its constructor to satisfy EIP-170; constructor
 arguments and protocol ABI remain unchanged. Both runtimes and initcode sizes are checked.
 
-The current master refresh is recorded in `tests/results/master-refresh.log` and
+The previous master refresh is recorded in `tests/results/master-refresh.log` and
 `tests/results/master-refresh.json`: 124 targeted EVM parity tests, two focused Fe
 byte-builder tests, eleven Python checks, and the complete ABI/size audit. It also
 checks the packed-padding preservation boundary. Compiler fixes have their own
 Fe runtime and diagnostic fixtures; no Rust tests were added.
 
-Compared with the previous PR checkpoint, aggregate audited runtime size is
-294,865 bytes (+1,764, 0.60%); MetadataGeometry shrinks from 12,727 to 12,489 bytes.
-All runtime and initcode limits pass. Shared read effects reduce ABI view
-mutability refinements from 42 to three.
+On Fe master `22b156fff`, all 353 EVM tests except the known
+`HelperParityTest.testHugeAllocationPanic` divergence and all 66 Fe tests pass,
+with StabilityPool built from a local copy of `active_pool` before its four calls
+in place of #1828. Aggregate audited runtime size is 277,054 bytes, down from
+294,865 at the previous PR checkpoint (-17,811, -6.04%); compiler and protocol
+ABIs are unchanged. All runtime and initcode limits pass. Shared read effects
+reduce ABI view mutability refinements from 42 to three.
 
 The earlier full MVS protocol checkpoint is `tests/results/mvs-refresh.log` and
 `tests/results/mvs-refresh.json` (353 EVM tests and 66 Fe tests). The suite also
