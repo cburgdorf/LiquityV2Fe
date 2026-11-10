@@ -2,7 +2,7 @@
 use core::abi::{AbiSize, AbiSpan, ByteInput}
 use core::num::IntDowncast
 use std::abi::{sol, Sol, DynArray, DynString}
-use std::evm::{Address, Call, RawOps, encode_abi_payload, revert_error}
+use std::evm::{Address, Call, RawOps, encode_abi_payload, revert, revert_error}
 use std::evm::panic::Panic
 use super::bytes_builder::BytesBuilder
 use super::helper_calls::*
@@ -39,7 +39,12 @@ pub fn resolve(_ registry: Address, _ index: u256) -> (Address, Address) uses (c
 fn allocate(_ count: u256, _ stride: u256) -> BytesBuilder {
     // Solidity rejects memory-array lengths larger than uint64 before allocation.
     if count > 0xffffffffffffffff { revert_error(Panic { code: 0x41 }) }
-    BytesBuilder::zeroed(count * stride)
+    // A shorter array whose bytes don't fit in memory runs the reference out of
+    // gas while it zeroes the array. Fail with the same empty data before Fe's
+    // bounded allocator panics on the 32-byte prefix and payload.
+    let size = count * stride
+    if 32 + size > 0xffffffffffffffff { revert(()) }
+    BytesBuilder::zeroed(size)
 }
 fn one(_ manager: Address, _ id: u256, _ out: mut BytesBuilder, _ base: u256) uses (call: Call) {
     out.write_word(at: base, value: id)
