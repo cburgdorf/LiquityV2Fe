@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Generated from pinned Solidity interface src/interfaces/IUserProxy.sol.
 // Solidity tuple fields are represented by Fe tuples; integer widths use std ABI wrappers.
-use std::abi::{Bytes32, Sol, sol}
+use std::abi::{Bytes32, sol}
 use std::evm::Address
-use core::abi::{AbiSize, AbiSpan, AbiDecoder, ByteInput, Decode, Encode, checked_frame_end}
 pub msg IUserProxy {
     // Solidity: view
     #[selector = sol("lqty()")]
@@ -30,6 +29,7 @@ pub msg IUserProxy {
     #[selector = sol("unstake(uint256,bool,address)")]
     Unstake { amount: u256, do_send_rewards: bool, recipient: Address } -> (u256, u256, u256, u256, u256, u256),
 }
+#[abi]
 pub struct PermitParams {
     pub owner: Address,
     pub spender: Address,
@@ -38,36 +38,4 @@ pub struct PermitParams {
     pub v: u8,
     pub r: Bytes32,
     pub s: Bytes32,
-}
-impl AbiSize for PermitParams { const HEAD_SIZE: u256 = 224
-    const IS_DYNAMIC: bool = false }
-impl AbiSpan<Sol> for PermitParams {
-    fn payload_end<I: ByteInput>(_ input: I, base: u256, pos: u256) -> u256 { checked_frame_end<Sol>(pos, 224, input.len()) }
-}
-impl Decode<Sol> for PermitParams {
-    fn decode_payload<D: AbiDecoder<Sol>>(_ d: mut D) -> Self {
-        let pos = d.pos()
-        let end = checked_frame_end<Sol>(pos, 224, d.input().len())
-        d.set_pos(end)
-        let input = d.input()
-        let owner = <Address as Decode<Sol>>::decode_from(input, pos + 0)
-        let spender = <Address as Decode<Sol>>::decode_from(input, pos + 32)
-        let value = <u256 as Decode<Sol>>::decode_from(input, pos + 64)
-        let deadline = <u256 as Decode<Sol>>::decode_from(input, pos + 96)
-        let v = <u8 as Decode<Sol>>::decode_from(input, pos + 128)
-        let r = <Bytes32 as Decode<Sol>>::decode_from(input, pos + 160)
-        let s = <Bytes32 as Decode<Sol>>::decode_from(input, pos + 192)
-        Self { owner, spender, value, deadline, v, r, s }
-    }
-}
-impl Encode<Sol> for PermitParams {
-    fn encode(own self, _ ptr: *u8) {
-        <Address as Encode<Sol>>::encode(self.owner, core::ptr::offset_bytes(ptr, 0))
-        <Address as Encode<Sol>>::encode(self.spender, core::ptr::offset_bytes(ptr, 32))
-        <u256 as Encode<Sol>>::encode(self.value, core::ptr::offset_bytes(ptr, 64))
-        <u256 as Encode<Sol>>::encode(self.deadline, core::ptr::offset_bytes(ptr, 96))
-        <u8 as Encode<Sol>>::encode(self.v, core::ptr::offset_bytes(ptr, 128))
-        <Bytes32 as Encode<Sol>>::encode(self.r, core::ptr::offset_bytes(ptr, 160))
-        <Bytes32 as Encode<Sol>>::encode(self.s, core::ptr::offset_bytes(ptr, 192))
-    }
 }

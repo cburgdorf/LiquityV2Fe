@@ -8,6 +8,6 @@ pub msg MemoryArrayHarnessMsg {
 pub contract MemoryArrayHarness {
     init() {}
     recv MemoryArrayHarnessMsg {
-        batchLiquidateTroves { ids } -> u256 { ids.values.len() }
+        batchLiquidateTroves { ids } -> u256 { ids.values.len() as u256 }
     }
 }

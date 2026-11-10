@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
+use std::evm::read_storage_word
 use core::abi::{ByteInput, Decode}
-use std::abi::{sol, Sol, Bytes, DynArray, DynArrayAccess, MemVec}
-use std::evm::{Address, Ctx, Call, RawMem, RawStorage, encode_abi_payload}
+use std::abi::{sol, Sol, Bytes, DynArray}
+use std::evm::{Address, Ctx, Call, RawStorage, encode_abi_payload}
 use super::zapper_calls::{LeveragedOpenParams, CloseParams, checked_address}
 use super::token_calls::safe_transfer
 use super::revert_texts::require
 use super::balancer_errors as error
-const VAULT: Address = Address { inner: 0xba12222222228d8ba445958a75a0704d566bf2c8 }
+const VAULT: Address = Address::new(0xba12222222228d8ba445958a75a0704d566bf2c8)
 pub msg VaultCalls {
     #[selector = sol("flashLoan(address,address[],uint256[],bytes)")]
     Flash { receiver: Address, tokens: DynArray<Address>, amounts: DynArray<u256>, data: Bytes },
@@ -29,9 +30,9 @@ pub msg BalancerMsg {
     #[selector = sol("receiveFlashLoan(address[],uint256[],uint256[],bytes)")]
     Receive { tokens: DynArray<Address>, amounts: DynArray<u256>, fees: DynArray<u256>, data: Bytes },
 }
-fn receiver() -> Address uses (storage: RawStorage) { Address { inner: storage.sload(0) & ((1 << 160) - 1) } }
+fn receiver() -> Address uses (storage: RawStorage) { Address::from_word_truncate(read_storage_word(0) & ((1 << 160) - 1)) }
 fn set_receiver(_ value: Address) uses (storage: mut RawStorage) {
-    storage.sstore(slot: 0, value: (storage.sload(0) >> 160 << 160) | value.inner)
+    unsafe { storage.sstore(slot: 0, value: (read_storage_word(0) >> 160 << 160) | value.word()) }
 }
 fn require_code(_ target: Address) uses (ctx: Ctx) {
     if ctx.extcodesize(target) == 0 { std::evm::revert(()) }
@@ -47,8 +48,8 @@ fn params_size(_ operation: u256) -> u256 {
     if operation == 0 { 416 } else if operation == 3 { 96 } else { 128 }
 }
 fn encode_data(_ operation: u8, _ data: Bytes) -> Bytes {
-    let input = data.payload_span()
-    if input.len() < params_size(operation as u256) { std::evm::revert(()) }
+    let input = data.span()
+    if (input.len() as u256) < params_size(operation as u256) { std::evm::revert(()) }
     if operation == 0 {
         let p = <LeveragedOpenParams as Decode<Sol>>::decode_from(input, 0)
         validate_open(p)
@@ -74,25 +75,25 @@ pub contract BalancerFlashLoan {
         Receiver -> Address uses (storage: RawStorage) { receiver() }
         Make { token, amount, operation, data } uses (ctx: Ctx, call: mut Call, storage: mut RawStorage) {
             if operation > 3 { std::evm::revert(()) }
-            let mut tokens: MemVec<Address> = MemVec::zeroed(1)
-            tokens.set(index: 0, value: token)
-            let mut amounts: MemVec<u256> = MemVec::zeroed(1)
-            amounts.set(index: 0, value: amount)
+            var tokens: MemArray<Address> = MemArray::new_zeroed(1)
+            tokens.set(0, token)
+            var amounts: MemArray<u256> = MemArray::new_zeroed(1)
+            amounts.set(0, amount)
             let user_data = encode_data(operation, data)
             set_receiver(ctx.caller())
             require_code(VAULT)
-            VAULT.call(VaultCalls::Flash { receiver: ctx.address(), tokens: tokens.to_dyn_array(), amounts: amounts.to_dyn_array(), data: user_data })
+            VAULT.call(VaultCalls::Flash { receiver: ctx.address(), tokens: DynArray::from_slice(tokens.as_slice()), amounts: DynArray::from_slice(amounts.as_slice()), data: user_data })
         }
-        Receive { tokens, amounts, fees, data } uses (ctx: Ctx, call: mut Call, storage: mut RawStorage, mem: mut RawMem) {
+        Receive { tokens, amounts, fees, data } uses (ctx: Ctx, call: mut Call, storage: mut RawStorage) {
             require(ctx.caller() == VAULT, error::vault())
             let cached = receiver()
             require(cached != Address::zero(), error::initiated())
             set_receiver(Address::zero())
-            let input = data.payload_span()
+            let input = data.span()
             if input.len() < 32 { std::evm::revert(()) }
             let operation = input.word_at(0)
             if operation > 3 { std::evm::revert(()) }
-            if input.len() - 32 < params_size(operation) { std::evm::revert(()) }
+            if (input.len() as u256) - 32 < params_size(operation) { std::evm::revert(()) }
             if operation == 0 {
                 let p = <LeveragedOpenParams as Decode<Sol>>::decode_from(input, 32)
                 validate_open(p)

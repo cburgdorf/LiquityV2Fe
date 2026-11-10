@@ -35,8 +35,9 @@ def normalize_joins(source):
             args.append(part)
         result='text('+args[0]+')'
         if len(args)>1:
-            result='cat('+args[0]+', '+args[1]+')'
-            for arg in args[2:]:result='cat('+result+'.as_bytes(), '+arg+')'
+            spans=[arg+'.span()' if arg.startswith('fragment(') else arg for arg in args]
+            result='cat('+spans[0]+', '+spans[1]+')'
+            for arg in spans[2:]:result='cat('+result+'.span(), '+arg+')'
         output+=source[start:match.start()]+result
         start=end+1
     return output+source[start:]

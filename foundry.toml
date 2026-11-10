@@ -5,7 +5,9 @@ out = "tests/out"
 cache_path = "tests/cache"
 libs = []
 solc_version = "0.8.24"
-evm_version = "cancun"
+# Fe compiles for Osaka and emits CLZ. Foundry still compiles the 0.8.24
+# reference for Cancun, the newest EVM that solc version supports.
+evm_version = "osaka"
 optimizer = true
 fs_permissions = [{ access = "read", path = "./build" }, { access = "read", path = "./reference/bold/contracts/utils/assets" }]
 [profile.default.fuzz]

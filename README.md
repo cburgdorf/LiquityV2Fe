@@ -1,8 +1,8 @@
 # Liquity V2 in Fe
 
 The Fe implementation now includes the complete pinned contract/interface inventory
-and a runnable local deployment. The final integrated suite passes **353 EVM tests
-and 64 Fe tests**, including the ABI/size audit.
+and a runnable local deployment. The latest compiler refresh uses targeted
+checks, with its scope and reproducible evidence described below.
 
 The target is the complete Liquity V2 contract system, preserving the behavior of
 [liquity/bold](https://github.com/liquity/bold), including interest and batch
@@ -11,10 +11,23 @@ collateral branches, authorization, token/NFT behavior, oracle shutdowns, helper
 and zappers. Source mappings and their verification scope are in `port_status.json` and
 `governance_status.json`. Governance and connected initiative lifecycles are included.
 
-`reference_manifest.json` pins the Solidity reference and the Fe upstream/master
-revision used for the local compiler build. Compiler work is isolated in
-`toolchain/fe`; fixes, if needed, will each receive a separate branch, regression
-tests and a newsfragment, and be listed in `COMPILER_FIXES.md`.
+`reference_manifest.json` pins the Solidity reference and Fe compiler at
+[`argotorg/fe` master `5cebf09af`](https://github.com/argotorg/fe/tree/5cebf09af44eaaf5e81302eecff01d519bf48f7b)
+with Sonatina `5a44318d`. Master includes the
+[custom struct ABI wire types](https://github.com/argotorg/fe/pull/1827) and
+[Snapshot call checking](https://github.com/argotorg/fe/pull/1828) fixes.
+The metadata renderer uses `core::text` for base64 and decimal formatting.
+Fe compiles for Osaka (CLZ), so Foundry runs the
+differential suite under Osaka while compiling the Solidity reference for Cancun.
+The compiler lives in `toolchain/fe`; bootstrap and the test suite reject
+compiler source or binary drift. Compiler investigations are recorded in
+`COMPILER_FIXES.md`.
+
+The port uses merged long-literal code copying, safe copied storage reads,
+checked buffer word writes, and shared effects for read-only calls. The metadata
+generators emit string literals directly. An explicit unvalidated address-word
+type preserves Solidity's lazy calldata validation; ordinary `Address` values
+use Fe's validated constructors and `word()` accessor.
 
 Initialize pinned sources and build the local compiler:
 
@@ -53,8 +66,8 @@ Business Source License is in `LICENSE-BUSL-1.1`.
 
 Current verified implementations: LiquityMath, AddressesRegistry, GasPool,
 DefaultPool, CollSurplusPool, ActivePool, BoldToken (including ERC20Permit and
-EIP712), SortedTroves (including batch operations), TroveNFT, FixedAssetReader, MetadataNFT, AddRemoveManagers, LiquityBase, CollateralRegistry, StabilityPool, TroveManager, BorrowerOperations, the WETH/rETH/wstETH price feeds, HintHelpers, MultiTroveGetter, DebtInFrontHelper and the legacy Constants query contract. The current suite
-passes 353 EVM tests plus 64 Fe tests. `PoolSystem.t.sol`
+EIP712), SortedTroves (including batch operations), TroveNFT, FixedAssetReader, MetadataNFT, AddRemoveManagers, LiquityBase, CollateralRegistry, StabilityPool, TroveManager, BorrowerOperations, the WETH/rETH/wstETH price feeds, HintHelpers, MultiTroveGetter, DebtInFrontHelper and the legacy Constants query contract. The differential suite
+contains 353 EVM tests plus 66 Fe tests. `PoolSystem.t.sol`
 deploys and connects the actual Fe registry, token and pools, and compares
 collateral redistribution, surplus claims and interest minting with Solidity.
 TroveManagerSystem additionally connects the real manager, pools, token, NFT and
@@ -69,7 +82,7 @@ Use `build/protocol/*.abi.json` for protocol integration after `scripts/test.sh`
 The ABI export validates every function signature, return shape and emitted event
 against Solidity. It accounts explicitly for pure implementations of view getters,
 the flat seven-value EIP712 domain return, static tuple output metadata,
-conservative STATICCALL capability metadata, and unused reference declarations.
+the remaining raw-effect mutability refinements, and unused reference declarations.
 Original Fe compiler ABIs remain in `build/*.abi.json`; the audit is recorded in
 `tests/results/abi-audit.json`. Runtime parity is checked separately by the EVM tests.
 
@@ -86,14 +99,29 @@ all image/status variants and pinned production font/logo assets. MetadataNFT cr
 a stateless rendering companion in its constructor to satisfy EIP-170; constructor
 arguments and protocol ABI remain unchanged. Both runtimes and initcode sizes are checked.
 
-The local compiler is based on upstream/master `f1f89a9dd` with the remaining
-pinned fixes documented in [COMPILER_FIXES.md](COMPILER_FIXES.md). The latest
-complete protocol checkpoint is `tests/results/complete-port.log` and
-`tests/results/complete-port.json` (353 EVM tests and 64 Fe tests).
-The packaged deployment smoke passes, and all 150 recorded bytecode files match
-the final build exactly; see `tests/results/local-deployment.json` and
-[COMPLETION_AUDIT.md](COMPLETION_AUDIT.md). After a successful logged full test run, record its
-provenance with `python3 scripts/record_validation.py <log-path>` before edits.
+The previous master refresh is recorded in `tests/results/master-refresh.log` and
+`tests/results/master-refresh.json`: 124 targeted EVM parity tests, two focused Fe
+byte-builder tests, eleven Python checks, and the complete ABI/size audit. It also
+checks the packed-padding preservation boundary. Compiler fixes have their own
+Fe runtime and diagnostic fixtures; no Rust tests were added.
+
+On Fe master `5cebf09af`, all 353 EVM tests and all 66 Fe tests pass.
+MultiTroveGetter fails like the reference, with empty data, on an array length
+below 2^64 whose bytes exceed Fe's allocation bound, where the reference runs
+out of gas zeroing it. Aggregate audited runtime size is 265,495 bytes, down
+from 294,865 at the previous PR checkpoint (-29,370, -9.96%); compiler and
+protocol ABIs are unchanged. All runtime and initcode limits pass. Shared read effects
+reduce ABI view mutability refinements from 42 to three.
+
+The earlier full MVS protocol checkpoint is `tests/results/mvs-refresh.log` and
+`tests/results/mvs-refresh.json` (353 EVM tests and 66 Fe tests). The suite also
+checks compiler provenance, eleven toolchain and generation regressions,
+and ABI/size limits for all 41 protocol contracts and their implementation
+companions.
+The packaged deployment smoke evidence in `tests/results/local-deployment.json`
+and [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) describes the earlier pre-MVS build.
+After a successful logged full test run, record its provenance with
+`python3 scripts/record_validation.py <log-path>` before edits.
 
 CollateralRegistry tests cover branch allocation, rounding remainders, fallback
 to branch debt, partial redemptions, fee decay, malformed constructor arrays and

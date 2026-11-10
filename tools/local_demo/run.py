@@ -15,7 +15,7 @@ out.mkdir(parents=True,exist_ok=False)
 subprocess.run(['forge','build','--root',str(P)],check=True)
 rpc=f'http://127.0.0.1:{args.port}'
 with (out/'anvil.log').open('w') as log:
- node=subprocess.Popen(['anvil','--host','127.0.0.1','--port',str(args.port),'--hardfork','cancun','--gas-limit','100000000','--silent'],stdout=log,stderr=subprocess.STDOUT)
+ node=subprocess.Popen(['anvil','--host','127.0.0.1','--port',str(args.port),'--hardfork','osaka','--gas-limit','100000000','--silent'],stdout=log,stderr=subprocess.STDOUT)
  try:
   deadline=time.monotonic()+10
   while True:
