@@ -1,8 +1,8 @@
 # Compiler fixes
 
-Current compiler: `toolchain/fe` at `80eaf2deb573bf2fde2d3d5701e9504855157bdd`
-on [`argotorg/fe` master](https://github.com/argotorg/fe/tree/80eaf2deb573bf2fde2d3d5701e9504855157bdd),
-with Sonatina `37c7c0aa8097310872ad3a484b23463c0e38cfc0`. Master contains
+Current compiler: `toolchain/fe` at `5cebf09af44eaaf5e81302eecff01d519bf48f7b`
+on [`argotorg/fe` master](https://github.com/argotorg/fe/tree/5cebf09af44eaaf5e81302eecff01d519bf48f7b),
+with Sonatina `5a44318d34c0701eaedf9e3485d5241459820cbb`. Master contains
 [Fe #1827](https://github.com/argotorg/fe/pull/1827) (custom struct wire-type
 metadata, merged as `949e776b0`), which supports lazy calldata address words
 without violating the canonical Address invariant;

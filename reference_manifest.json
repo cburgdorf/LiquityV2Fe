@@ -6,9 +6,9 @@
   "compiler": {
     "url": "https://github.com/argotorg/fe",
     "branch": "master",
-    "revision": "80eaf2deb573bf2fde2d3d5701e9504855157bdd",
-    "tree": "6eda7f1c539e2fe22ebc232d1bf2171da1f260a9",
-    "sonatina": "37c7c0aa8097310872ad3a484b23463c0e38cfc0"
+    "revision": "5cebf09af44eaaf5e81302eecff01d519bf48f7b",
+    "tree": "66c074a63b5574df228e6fe92b986de19d6b1d60",
+    "sonatina": "5a44318d34c0701eaedf9e3485d5241459820cbb"
   },
   "sources": {
     "contracts/src/ActivePool.sol": "61db32fda189278a0e13b68dbfa5c3e4d2a2445dd8415ca7e044517723567e0b",
